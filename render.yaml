@@ -1,3 +1,4 @@
+version: 1
 services:
   - type: web
     name: speech-to-text
@@ -9,6 +10,12 @@ services:
       yarn install
       yarn build
     startCommand: PORT=$PORT yarn start
+    buildFilter:
+      paths:
+        - "**/*"
+      ignoredPaths:
+        - ".git/**"
+        - "node_modules/**"
     envVars:
       - key: LEMONFOX_API_KEY
         sync: false
