@@ -1,27 +1,45 @@
 {
   "name": "speech-to-text",
-  "version": "0.1.0",
-  "private": true,
+  "version": "1.0.0",
+  "description": "A Next.js application that transcribes audio and video files to text using Lemonfox.ai's API, optimized for Vercel deployment with support for direct uploads up to 4MB and URL-based uploads up to 100MB",
+  "packageManager": "yarn@4.6.0",
   "scripts": {
     "dev": "next dev --turbopack",
     "build": "next build",
     "start": "next start",
     "lint": "next lint"
   },
+  "keywords": [
+    "speech-to-text",
+    "transcription",
+    "next.js",
+    "vercel",
+    "lemonfox",
+    "audio",
+    "video"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/yourusername/speech-to-text"
+  },
+  "engines": {
+    "node": ">=18"
+  },
   "dependencies": {
+    "axios": "^1.7.9",
+    "next": "15.1.7",
     "react": "^19.0.0",
-    "react-dom": "^19.0.0",
-    "next": "15.1.7"
+    "react-dom": "^19.0.0"
   },
   "devDependencies": {
-    "typescript": "^5",
+    "@eslint/eslintrc": "^3",
     "@types/node": "^20",
     "@types/react": "^19",
     "@types/react-dom": "^19",
-    "postcss": "^8",
-    "tailwindcss": "^3.4.1",
     "eslint": "^9",
     "eslint-config-next": "15.1.7",
-    "@eslint/eslintrc": "^3"
+    "postcss": "^8",
+    "tailwindcss": "^3.4.1",
+    "typescript": "^5"
   }
 }
