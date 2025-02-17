@@ -2,8 +2,13 @@ services:
   - type: web
     name: speech-to-text
     runtime: node
-    buildCommand: npm install && npm run build
-    startCommand: npm start
+    buildCommand: |
+      npm install -g corepack
+      corepack enable
+      corepack prepare yarn@4.6.0 --activate
+      yarn install
+      yarn build
+    startCommand: PORT=$PORT yarn start
     envVars:
       - key: LEMONFOX_API_KEY
         sync: false
