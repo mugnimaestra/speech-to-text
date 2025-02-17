@@ -7,8 +7,8 @@ A Next.js application that transcribes audio and video files to text using Lemon
 - 🎵 Support for multiple audio formats: MP3, WAV, FLAC, AAC, OGG, M4A
 - 🎥 Support for video formats: MP4, MPEG, MOV, WEBM
 - 📁 File size limits:
-  - Direct upload: up to 4MB (Vercel deployment limitation)
-  - URL: up to 100MB
+  - Direct upload: up to 100MB
+  - URL: up to 1GB
 - 🌐 Remote file transcription via URL
 - 🎯 High accuracy transcription powered by Lemonfox.ai
 - 📋 Easy copy-to-clipboard functionality
@@ -69,53 +69,49 @@ Open [http://localhost:3000](http://localhost:3000) to view the application.
    - Drag and drop an audio/video file into the upload area
    - Or click to open the file selector
    - Supported file types: MP3, WAV, FLAC, AAC, OGG, M4A, MP4, MPEG, MOV, WEBM
-   - Maximum file size: 4MB (due to Vercel deployment limitations)
+   - Maximum file size: 100MB
    - For larger files, please use URL upload
 
 2. **URL Transcription**
 
    - Paste a URL to an audio/video file in the URL input field
    - Click "Transcribe URL"
-   - Maximum file size: 100MB
+   - Maximum file size: 1GB
    - URL must point directly to a media file
-   - Recommended for files larger than 4MB
 
 3. **View and Copy Results**
    - Transcription appears below the upload area
    - Use the "Copy to Clipboard" button to copy the text
    - Preview uploaded media files in the browser
 
-## Deployment Considerations
+## Deployment
 
-### Vercel Deployment
+### Render.com Deployment
 
-The application is optimized for deployment on Vercel with the following considerations:
+The application is optimized for deployment on Render.com with the following features:
 
-1. **File Size Limitations**
+1. **File Size Support**
+   - Direct file uploads up to 100MB
+   - URL-based uploads up to 1GB
+   - No timeout issues for long transcriptions (up to 15 minutes)
 
-   - Direct file uploads are limited to 4MB due to Vercel's API route body size restriction
-   - For files larger than 4MB, use the URL upload feature
-
-2. **URL Upload Feature**
-   - Not affected by Vercel's size limitations
-   - Handles files up to 100MB
-   - More efficient for larger files
-   - Direct URL processing by Lemonfox.ai
-
-### Alternative Deployment Options
-
-For applications requiring larger direct file uploads, consider:
-
-1. Using a cloud storage service (e.g., AWS S3) for initial file upload
-2. Implementing client-side direct uploads to Lemonfox
-3. Deploying to a platform without body size restrictions
+2. **Deployment Steps**
+   1. Push your code to GitHub/GitLab
+   2. Create an account on [Render.com](https://render.com)
+   3. Create a new Web Service
+   4. Connect your repository
+   5. Use the following settings:
+      - Build Command: `npm install && npm run build`
+      - Start Command: `npm start`
+   6. Add environment variable:
+      - LEMONFOX_API_KEY: (your api key)
 
 ## Error Handling
 
 The application handles various error cases:
 
 - Invalid file formats
-- File size limits (with clear guidance on using URL upload for larger files)
+- File size limits
 - Invalid URLs
 - API errors
 - Network issues
@@ -158,14 +154,21 @@ import SpeechToText from "@/components/SpeechToText";
 Handles both direct file uploads and URL transcription requests.
 
 Request body (FormData):
-
 - `file`: File object or URL string
 
 Response:
-
 ```json
 {
-  "text": "Transcribed text content..."
+  "text": "Transcribed text content",
+  "segments": [
+    {
+      "id": 1,
+      "text": "Segment text",
+      "start": 0.0,
+      "end": 1.0,
+      "speaker": "A"
+    }
+  ]
 }
 ```
 

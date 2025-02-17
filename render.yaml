@@ -1,0 +1,12 @@
+services:
+  - type: web
+    name: speech-to-text
+    runtime: node
+    buildCommand: npm install && npm run build
+    startCommand: npm start
+    envVars:
+      - key: LEMONFOX_API_KEY
+        sync: false
+    autoDeploy: true
+    plan: free # Using free tier, change to other plans if needed
+    healthCheckPath: / # Adding health check for the web service 

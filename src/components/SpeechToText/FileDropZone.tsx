@@ -35,8 +35,8 @@ export function FileDropZone({
         return false;
       }
 
-      if (file.size > FILE_LIMITS.VERCEL_MAX_SIZE) {
-        onError(FILE_SIZE_ERROR.OVER_VERCEL_LIMIT);
+      if (file.size > FILE_LIMITS.MAX_SIZE) {
+        onError(FILE_SIZE_ERROR.OVER_LIMIT);
         return false;
       }
 
@@ -214,7 +214,7 @@ export function FileDropZone({
                     </p>
                     <p>
                       <span aria-hidden="true">📁</span> Size limits: Direct
-                      upload up to {FILE_LIMITS.VERCEL_MAX_SIZE / 1024 / 1024}
+                      upload up to {FILE_LIMITS.MAX_SIZE / 1024 / 1024}
                       MB. For larger files up to{" "}
                       {FILE_LIMITS.URL_MAX_SIZE / 1024 / 1024}MB, please use URL
                       upload.
