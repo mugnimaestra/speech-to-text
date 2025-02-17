@@ -3,7 +3,7 @@
  * @example
  * // File input from user's local system
  * const fileInput: AudioInput = new File([blob], 'recording.mp3');
- * 
+ *
  * // URL input from remote source
  * const urlInput: AudioInput = 'https://example.com/audio/recording.mp3';
  */
@@ -32,7 +32,7 @@ export interface Word {
 /**
  * Represents a segment of transcribed speech with metadata.
  * Each segment contains multiple words and is associated with a specific speaker.
- * 
+ *
  * @example
  * // Example segment in the transcription
  * const segment: Segment = {
@@ -84,7 +84,7 @@ export interface Word {
  *     // ... more words
  *   ]
  * };
- * 
+ *
  * UI Visualization:
  * +----------------------------------+
  * | Speaker A                    0:00 |
@@ -106,8 +106,20 @@ export interface Segment {
 }
 
 /**
+ * Represents a structured conversation format for the transcription
+ */
+export interface StructuredConversation {
+  role: string;
+  text: string;
+  timestamp?: {
+    start: number;
+    end: number;
+  };
+}
+
+/**
  * Represents the complete transcription result with all segments and potential error information.
- * 
+ *
  * @example
  * // Example transcription result
  * const result: TranscriptionResult = {
@@ -212,11 +224,12 @@ export interface TranscriptionResult {
   text: string;
   segments: Segment[];
   error?: string;
+  structuredConversation?: StructuredConversation[];
 }
 
 /**
  * Props for the SpeechToText component that handles audio transcription.
- * 
+ *
  * @example
  * // Example usage in a React component
  * <SpeechToText

@@ -27,6 +27,7 @@ export async function POST(request: NextRequest) {
 
     const formData = await request.formData();
     const fileOrUrl = formData.get("file");
+    const prompt = formData.get("prompt");
 
     if (!fileOrUrl) {
       return NextResponse.json(
@@ -77,9 +78,12 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Add Lemonfox-specific parameters for speaker diarization
+    // Add Lemonfox-specific parameters for speaker diarization and prompt
     lemonfoxFormData.append("response_format", "verbose_json");
     lemonfoxFormData.append("speaker_labels", "true");
+    if (prompt) {
+      lemonfoxFormData.append("prompt", prompt);
+    }
 
     // Optional: Add min/max speakers if needed
     // lemonfoxFormData.append('min_speakers', '2');
@@ -106,7 +110,18 @@ export async function POST(request: NextRequest) {
 
     // Extract text and segments from verbose_json response
     const { text, segments } = response.data;
-    return NextResponse.json({ text, segments });
+
+    // Structure the conversation based on segments
+    const structuredConversation = segments.map((segment: any) => ({
+      role: segment.speaker,
+      text: segment.text,
+      timestamp: {
+        start: segment.start,
+        end: segment.end,
+      },
+    }));
+
+    return NextResponse.json({ text, segments, structuredConversation });
   } catch (error) {
     console.error("Transcription error:", error);
 
