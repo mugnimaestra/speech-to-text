@@ -2,7 +2,6 @@
   "name": "speech-to-text",
   "version": "0.1.0",
   "description": "A Next.js application that transcribes audio and video files to text using Lemonfox.ai's API, with support for direct uploads up to 100MB and URL-based uploads up to 1GB",
-  "packageManager": "yarn@4.6.0",
   "scripts": {
     "dev": "next dev --turbopack",
     "build": "next build",

@@ -4,10 +4,9 @@ services:
     name: speech-to-text
     runtime: node
     buildCommand: |
-      corepack enable
-      yarn install
-      yarn build
-    startCommand: PORT=$PORT yarn start
+      node .yarn/releases/yarn-4.6.0.cjs install
+      node .yarn/releases/yarn-4.6.0.cjs build
+    startCommand: node .yarn/releases/yarn-4.6.0.cjs start
     buildFilter:
       paths:
         - "**/*"
