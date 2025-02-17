@@ -1,28 +1,21 @@
-import axios from 'axios';
-import { AudioInput } from '@/components/SpeechToText/types';
+import { TranscriptionResult } from "@/components/SpeechToText/types";
 
-const API_URL = '/api/transcribe';
+export async function transcribeAudio(
+  fileOrUrl: File | string
+): Promise<TranscriptionResult> {
+  const formData = new FormData();
+  formData.append("file", fileOrUrl);
 
-export async function transcribeAudio(input: AudioInput): Promise<string> {
-  try {
-    const formData = new FormData();
-    formData.append('file', input); // Works for both File and URL string
+  const response = await fetch("/api/transcribe", {
+    method: "POST",
+    body: formData,
+  });
 
-    const response = await axios.post(API_URL, formData, {
-      headers: {
-        'Content-Type': 'multipart/form-data',
-      },
-    });
-
-    if (!response.data.text) {
-      throw new Error('No transcription received');
-    }
-
-    return response.data.text;
-  } catch (error) {
-    if (axios.isAxiosError(error)) {
-      throw new Error(error.response?.data?.message || 'Failed to transcribe media');
-    }
-    throw error;
+  if (!response.ok) {
+    const error = await response.json();
+    throw new Error(error.message || "Failed to transcribe audio");
   }
+
+  const result = await response.json();
+  return result;
 }

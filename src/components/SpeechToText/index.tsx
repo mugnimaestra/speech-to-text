@@ -3,7 +3,7 @@
 import { useState, useCallback, useEffect } from "react";
 import {
   SpeechToTextProps,
-  TranscriptionResult as TranscriptionData,
+  TranscriptionResult as TranscriptionResultType,
 } from "./types";
 import { transcribeAudio } from "@/lib/transcriptionService";
 import { URLInput } from "./URLInput";
@@ -19,13 +19,12 @@ export default function SpeechToText({
     data: File | string;
   } | null>(null);
   const [isTranscribing, setIsTranscribing] = useState(false);
-  const [transcription, setTranscription] = useState<TranscriptionData | null>(
-    null
-  );
+  const [transcription, setTranscription] =
+    useState<TranscriptionResultType | null>(null);
 
   const handleError = useCallback(
     (error: string) => {
-      setTranscription({ text: "", error });
+      setTranscription({ text: "", segments: [], error });
       onError?.(error);
     },
     [onError]
@@ -39,11 +38,14 @@ export default function SpeechToText({
       try {
         setIsTranscribing(true);
         const result = await transcribeAudio(file);
-        const transcriptionResult = { text: result };
-        setTranscription(transcriptionResult);
-        onTranscriptionComplete?.(transcriptionResult);
+        setTranscription(result);
+        onTranscriptionComplete?.(result);
       } catch (error) {
-        const errorResult = { text: "", error: (error as Error).message };
+        const errorResult: TranscriptionResultType = {
+          text: "",
+          segments: [],
+          error: (error as Error).message,
+        };
         setTranscription(errorResult);
         onError?.((error as Error).message);
       } finally {
@@ -73,11 +75,14 @@ export default function SpeechToText({
       try {
         setIsTranscribing(true);
         const result = await transcribeAudio(url);
-        const transcriptionResult = { text: result };
-        setTranscription(transcriptionResult);
-        onTranscriptionComplete?.(transcriptionResult);
+        setTranscription(result);
+        onTranscriptionComplete?.(result);
       } catch (error) {
-        const errorResult = { text: "", error: (error as Error).message };
+        const errorResult: TranscriptionResultType = {
+          text: "",
+          segments: [],
+          error: (error as Error).message,
+        };
         setTranscription(errorResult);
         onError?.((error as Error).message);
       } finally {
@@ -117,6 +122,7 @@ export default function SpeechToText({
       {transcription && (
         <TranscriptionResult
           text={transcription.text}
+          segments={transcription.segments}
           error={transcription.error}
           onCopy={handleCopyToClipboard}
         />

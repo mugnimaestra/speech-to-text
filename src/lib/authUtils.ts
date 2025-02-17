@@ -1,5 +1,8 @@
 const AUTH_KEY = 'stt_auth_status';
-const ACCESS_CODE = process.env.NEXT_PUBLIC_ACCESS_CODE || 'demo123'; // Fallback for development
+const ACCESS_CODE = process.env.NEXT_PUBLIC_ACCESS_CODE;
+if (!ACCESS_CODE) {
+  throw new Error('NEXT_PUBLIC_ACCESS_CODE environment variable is required');
+}
 
 export const isAuthenticated = (): boolean => {
   if (typeof window === 'undefined') return false;

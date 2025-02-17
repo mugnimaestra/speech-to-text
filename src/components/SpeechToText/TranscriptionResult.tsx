@@ -1,14 +1,17 @@
 import { useState } from "react";
 import { Toast } from "../Toast";
+import { Segment } from "./types";
 
 type TranscriptionResultProps = {
   text: string;
+  segments?: Segment[];
   error?: string;
   onCopy: () => Promise<void>;
 };
 
 export function TranscriptionResult({
   text,
+  segments,
   error,
   onCopy,
 }: TranscriptionResultProps) {
@@ -45,10 +48,31 @@ export function TranscriptionResult({
             </button>
           </div>
           <div
-            className="p-4 bg-emerald-50 rounded-lg whitespace-pre-wrap border border-emerald-100"
+            className="p-4 bg-emerald-50 rounded-lg border border-emerald-100"
             aria-labelledby="transcription-heading"
           >
-            {text}
+            {segments ? (
+              <div className="space-y-4">
+                {segments.map((segment, index) => (
+                  <div key={index} className="flex gap-4 items-start">
+                    <div className="flex-shrink-0 w-24">
+                      <span className="inline-block px-2 py-1 bg-emerald-100 rounded text-sm font-medium text-emerald-800">
+                        {segment.speaker}
+                      </span>
+                    </div>
+                    <div className="flex-grow">
+                      <p className="text-gray-800">{segment.text}</p>
+                      <p className="text-xs text-gray-500 mt-1">
+                        {Math.floor(segment.start)}s - {Math.floor(segment.end)}
+                        s
+                      </p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div className="whitespace-pre-wrap">{text}</div>
+            )}
           </div>
         </div>
       )}

@@ -1,4 +1,4 @@
-import { useCallback, useRef, useState, useMemo } from "react";
+import { useCallback, useMemo, useRef, useState } from "react";
 import { ALLOWED_FORMATS, FILE_LIMITS, FILE_SIZE_ERROR } from "@/lib/constants";
 
 interface FileDropZoneProps {
@@ -94,6 +94,11 @@ export function FileDropZone({
     []
   );
 
+  const getObjectURL = useCallback(
+    (file: File) => URL.createObjectURL(file),
+    []
+  );
+
   return (
     <div className="space-y-4">
       <div
@@ -158,14 +163,14 @@ export function FileDropZone({
                   {currentFile.type.startsWith("audio/") ? (
                     <audio
                       controls
-                      src={URL.createObjectURL(currentFile)}
+                      src={getObjectURL(currentFile)}
                       className="mt-4"
                       aria-label={`Audio preview for ${currentFile.name}`}
                     />
                   ) : (
                     <video
                       controls
-                      src={URL.createObjectURL(currentFile)}
+                      src={getObjectURL(currentFile)}
                       className="mt-4 max-w-full"
                       aria-label={`Video preview for ${currentFile.name}`}
                     />
@@ -208,18 +213,11 @@ export function FileDropZone({
                       </span>
                     </p>
                     <p>
-                      <span aria-hidden="true">📁</span> Size limits:
-                      <ul className="ml-6 list-disc">
-                        <li>
-                          Direct upload: up to{" "}
-                          {FILE_LIMITS.VERCEL_MAX_SIZE / 1024 / 1024}MB
-                        </li>
-                        <li className="text-emerald-700">
-                          For larger files up to{" "}
-                          {FILE_LIMITS.URL_MAX_SIZE / 1024 / 1024}MB, please use
-                          URL upload
-                        </li>
-                      </ul>
+                      <span aria-hidden="true">📁</span> Size limits: Direct
+                      upload up to {FILE_LIMITS.VERCEL_MAX_SIZE / 1024 / 1024}
+                      MB. For larger files up to{" "}
+                      {FILE_LIMITS.URL_MAX_SIZE / 1024 / 1024}MB, please use URL
+                      upload.
                     </p>
                   </div>
                 </>

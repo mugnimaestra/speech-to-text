@@ -68,27 +68,54 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Add Lemonfox-specific parameters
-    lemonfoxFormData.append('response_format', 'json');
+    // Add Lemonfox-specific parameters for speaker diarization
+    lemonfoxFormData.append('response_format', 'verbose_json');
+    lemonfoxFormData.append('speaker_labels', 'true');
+    
+    // Optional: Add min/max speakers if needed
+    // lemonfoxFormData.append('min_speakers', '2');
+    // lemonfoxFormData.append('max_speakers', '4');
+
+    // Validate API key exists
+    const apiKey = process.env.LEMONFOX_API_KEY;
+    if (!apiKey) {
+      console.error('LEMONFOX_API_KEY is not configured');
+      return NextResponse.json(
+        { message: 'Service configuration error' },
+        { status: 500 }
+      );
+    }
 
     // Call Lemonfox API
     const response = await axios.post(API_URL, lemonfoxFormData, {
       headers: {
-        'Authorization': `Bearer ${process.env.LEMONFOX_API_KEY}`,
+        'Authorization': `Bearer ${apiKey}`,
         ...lemonfoxFormData.getHeaders(),
       },
-      maxBodyLength: FILE_LIMITS.URL_MAX_SIZE, // Set max size for URL-based uploads
+      maxBodyLength: FILE_LIMITS.URL_MAX_SIZE,
     });
 
-    return NextResponse.json({ text: response.data.text });
+    // Extract text and segments from verbose_json response
+    const { text, segments } = response.data;
+    return NextResponse.json({ text, segments });
   } catch (error) {
     console.error('Transcription error:', error);
     
     if (axios.isAxiosError(error)) {
-      return NextResponse.json(
-        { message: error.response?.data?.error?.message || 'Failed to transcribe audio/video' },
-        { status: error.response?.status || 500 }
-      );
+      // Sanitize error messages
+      const statusCode = error.response?.status || 500;
+      let message = 'Failed to transcribe audio/video';
+      
+      // Map specific error cases to user-friendly messages
+      if (statusCode === 401 || statusCode === 403) {
+        message = 'Service authentication error';
+      } else if (statusCode === 413) {
+        message = FILE_SIZE_ERROR.OVER_VERCEL_LIMIT;
+      } else if (statusCode === 415) {
+        message = FILE_SIZE_ERROR.INVALID_FORMAT;
+      }
+      
+      return NextResponse.json({ message }, { status: statusCode });
     }
 
     return NextResponse.json(
