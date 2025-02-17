@@ -10,6 +10,10 @@ import {
 
 const API_URL = "https://api.lemonfox.ai/v1/audio/transcriptions";
 
+// Add runtime config for longer timeout
+export const runtime = "nodejs";
+export const maxDuration = 900; // 15 minutes in seconds
+
 export async function POST(request: NextRequest) {
   try {
     // Check content length for direct file uploads
