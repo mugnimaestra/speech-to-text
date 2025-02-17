@@ -1,12 +1,10 @@
-version: 1
+version: "1"
 services:
   - type: web
     name: speech-to-text
     runtime: node
     buildCommand: |
-      npm install -g corepack
       corepack enable
-      corepack prepare yarn@4.6.0 --activate
       yarn install
       yarn build
     startCommand: PORT=$PORT yarn start
@@ -20,5 +18,5 @@ services:
       - key: LEMONFOX_API_KEY
         sync: false
     autoDeploy: true
-    plan: free # Using free tier, change to other plans if needed
+    plan: free
     healthCheckPath: / # Adding health check for the web service 
