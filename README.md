@@ -101,8 +101,8 @@ The application is optimized for deployment on Render.com with the following fea
    3. Create a new Web Service
    4. Connect your repository
    5. Use the following settings:
-      - Build Command: `npm install && npm run build`
-      - Start Command: `npm start`
+      - Build Command: `bun install && bun run build`
+      - Start Command: `bun run start`
    6. Add environment variable:
       - LEMONFOX_API_KEY: (your api key)
 
