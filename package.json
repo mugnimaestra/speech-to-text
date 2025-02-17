@@ -3,10 +3,10 @@
   "version": "0.1.0",
   "description": "A Next.js application that transcribes audio and video files to text using Lemonfox.ai's API, with support for direct uploads up to 100MB and URL-based uploads up to 1GB",
   "scripts": {
-    "dev": "bun --bun next dev",
-    "build": "bun --bun next build",
-    "start": "bun --bun next start -p $PORT",
-    "lint": "bun --bun next lint"
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start -p $PORT",
+    "lint": "next lint"
   },
   "keywords": [
     "speech-to-text",
@@ -21,22 +21,21 @@
     "url": "https://github.com/yourusername/speech-to-text"
   },
   "engines": {
-    "node": ">=18",
-    "bun": ">=1.0.30"
+    "node": "20.x",
+    "bun": "1.0.x"
   },
   "dependencies": {
-    "axios": "^1.7.9",
-    "next": "15.1.7",
-    "react": "^19.0.0",
-    "react-dom": "^19.0.0"
+    "axios": "^1.6.7",
+    "next": "14.1.0",
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0"
   },
   "devDependencies": {
-    "@eslint/eslintrc": "^3",
     "@types/node": "^20",
-    "@types/react": "^19",
-    "@types/react-dom": "^19",
-    "eslint": "^9",
-    "eslint-config-next": "15.1.7",
+    "@types/react": "^18",
+    "@types/react-dom": "^18",
+    "eslint": "^8",
+    "eslint-config-next": "14.1.0",
     "postcss": "^8",
     "tailwindcss": "^3.4.1",
     "typescript": "^5"
