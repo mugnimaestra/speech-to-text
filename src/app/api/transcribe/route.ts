@@ -14,10 +14,28 @@ const API_URL = "https://api.lemonfox.ai/v1/audio/transcriptions";
 export const runtime = "nodejs";
 export const maxDuration = 900; // 15 minutes in seconds
 
+// Debug logger that only logs in development
+const debug = {
+  log: (...args: any[]) => {
+    if (process.env.NODE_ENV === "development") {
+      console.log(...args);
+    }
+  },
+  error: (...args: any[]) => {
+    if (process.env.NODE_ENV === "development") {
+      console.error(...args);
+    }
+  },
+};
+
 export async function POST(request: NextRequest) {
   try {
+    debug.log("=== Starting file upload process ===");
+
     // Check content length for direct file uploads
     const contentLength = request.headers.get("content-length");
+    debug.log("Content length:", contentLength);
+
     if (contentLength && parseInt(contentLength) > FILE_LIMITS.MAX_SIZE) {
       return NextResponse.json(
         { message: FILE_SIZE_ERROR.OVER_LIMIT },
@@ -27,7 +45,18 @@ export async function POST(request: NextRequest) {
 
     const formData = await request.formData();
     const fileOrUrl = formData.get("file");
+    debug.log("File or URL type:", typeof fileOrUrl);
+    debug.log("Is File instance:", fileOrUrl instanceof File);
+    if (fileOrUrl instanceof File) {
+      debug.log("File details:", {
+        name: fileOrUrl.name,
+        type: fileOrUrl.type,
+        size: fileOrUrl.size,
+      });
+    }
+
     const prompt = formData.get("prompt");
+    debug.log("Prompt received:", prompt);
 
     if (!fileOrUrl) {
       return NextResponse.json(
@@ -38,12 +67,14 @@ export async function POST(request: NextRequest) {
 
     // Prepare form data for Lemonfox API
     const lemonfoxFormData = new FormData();
+    debug.log("Created new FormData for Lemonfox");
 
     if (typeof fileOrUrl === "string") {
-      // Handle URL case
+      debug.log("Processing URL upload");
       try {
         new URL(fileOrUrl); // Validate URL format
         lemonfoxFormData.append("file", fileOrUrl);
+        debug.log("URL appended to FormData");
       } catch {
         return NextResponse.json(
           { message: "Invalid URL provided" },
@@ -51,27 +82,46 @@ export async function POST(request: NextRequest) {
         );
       }
     } else if (fileOrUrl instanceof File) {
-      // Handle File case
+      debug.log("Processing File upload");
       // Validate file format
       if (!ALLOWED_FORMATS.includes(fileOrUrl.type as AllowedFormat)) {
+        debug.log("Invalid file format:", fileOrUrl.type);
         return NextResponse.json(
-          { message: FILE_SIZE_ERROR.INVALID_FORMAT },
+          { message: FILE_SIZE_ERROR.INVALID_FORMAT(fileOrUrl.type) },
           { status: 400 }
         );
       }
 
       // Validate file size
       if (fileOrUrl.size > FILE_LIMITS.MAX_SIZE) {
+        debug.log("File too large:", fileOrUrl.size);
         return NextResponse.json(
           { message: FILE_SIZE_ERROR.OVER_LIMIT },
           { status: 413 }
         );
       }
 
-      const buffer = await fileOrUrl.arrayBuffer();
-      const fileBlob = new Blob([buffer], { type: fileOrUrl.type });
-      lemonfoxFormData.append("file", fileBlob, fileOrUrl.name);
+      try {
+        debug.log("Converting file to buffer");
+        const buffer = await fileOrUrl.arrayBuffer();
+        debug.log("Buffer created, size:", buffer.byteLength);
+
+        // Try different approach with Buffer
+        const nodeBuffer = Buffer.from(buffer);
+        debug.log("Node Buffer created, size:", nodeBuffer.length);
+
+        lemonfoxFormData.append("file", nodeBuffer, {
+          filename: fileOrUrl.name,
+          contentType: fileOrUrl.type,
+          knownLength: nodeBuffer.length,
+        });
+        debug.log("File appended to FormData with metadata");
+      } catch (error) {
+        debug.error("Error processing file:", error);
+        throw error;
+      }
     } else {
+      debug.log("Invalid input type received:", typeof fileOrUrl);
       return NextResponse.json(
         { message: "Invalid file input" },
         { status: 400 }
@@ -92,7 +142,7 @@ export async function POST(request: NextRequest) {
     // Validate API key exists
     const apiKey = process.env.LEMONFOX_API_KEY;
     if (!apiKey) {
-      console.error("LEMONFOX_API_KEY is not configured");
+      debug.error("LEMONFOX_API_KEY is not configured");
       return NextResponse.json(
         { message: "Service configuration error" },
         { status: 500 }
@@ -123,7 +173,7 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({ text, segments, structuredConversation });
   } catch (error) {
-    console.error("Transcription error:", error);
+    debug.error("Transcription error:", error);
 
     if (axios.isAxiosError(error)) {
       // Sanitize error messages
@@ -136,7 +186,7 @@ export async function POST(request: NextRequest) {
       } else if (statusCode === 413) {
         message = FILE_SIZE_ERROR.OVER_LIMIT;
       } else if (statusCode === 415) {
-        message = FILE_SIZE_ERROR.INVALID_FORMAT;
+        message = FILE_SIZE_ERROR.INVALID_FORMAT("unknown format");
       }
 
       return NextResponse.json({ message }, { status: statusCode });

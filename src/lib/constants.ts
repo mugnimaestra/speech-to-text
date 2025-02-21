@@ -6,6 +6,7 @@ export const ALLOWED_FORMATS = [
   "audio/opus",
   "audio/ogg",
   "audio/m4a",
+  "audio/mpeg",
   "video/mp4",
   "video/mpeg",
   "video/mov",
@@ -23,7 +24,8 @@ export const FILE_SIZE_ERROR = {
   OVER_LIMIT:
     "File size exceeds 100MB. Please use URL upload for larger files.",
   OVER_URL_LIMIT: "File size exceeds 1GB limit.",
-  INVALID_FORMAT: `Invalid file format. Allowed formats: ${ALLOWED_FORMATS.join(
-    ", "
-  )}`,
+  INVALID_FORMAT: (detectedType: string) =>
+    `Invalid file format: "${detectedType}". Allowed formats: ${ALLOWED_FORMATS.join(
+      ", "
+    )}`,
 } as const;

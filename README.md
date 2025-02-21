@@ -4,7 +4,7 @@ A Next.js application that transcribes audio and video files to text using Lemon
 
 ## Features
 
-- 🎵 Support for multiple audio formats: MP3, WAV, FLAC, AAC, OGG, M4A
+- 🎵 Support for multiple audio formats: MP3, WAV, FLAC, OPUS, OGG, M4A
 - 🎥 Support for video formats: MP4, MPEG, MOV, WEBM
 - 📁 File size limits:
   - Direct upload: up to 100MB
@@ -64,7 +64,7 @@ Open [http://localhost:3000](http://localhost:3000) to view the application.
 
    - Drag and drop an audio/video file into the upload area
    - Or click to open the file selector
-   - Supported file types: MP3, WAV, FLAC, AAC, OGG, M4A, MP4, MPEG, MOV, WEBM
+   - Supported file types: MP3, WAV, FLAC, OPUS, OGG, M4A, MP4, MPEG, MOV, WEBM
    - Maximum file size: 100MB
    - For larger files, please use URL upload
 

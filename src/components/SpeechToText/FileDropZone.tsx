@@ -31,7 +31,7 @@ export function FileDropZone({
   const validateFile = useCallback(
     (file: File): boolean => {
       if (!isAllowedMimeType(file.type)) {
-        onError(FILE_SIZE_ERROR.INVALID_FORMAT);
+        onError(FILE_SIZE_ERROR.INVALID_FORMAT(file.type || "unknown"));
         return false;
       }
 
