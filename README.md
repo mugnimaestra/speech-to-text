@@ -17,7 +17,7 @@ A Next.js application that transcribes audio and video files to text using Lemon
 ## Prerequisites
 
 - Node.js 18 or later
-- npm or yarn
+- Yarn 4
 - Lemonfox.ai API key
 
 ## Setup
@@ -32,8 +32,6 @@ cd speech-to-text
 2. Install dependencies:
 
 ```bash
-npm install
-# or
 yarn install
 ```
 
@@ -55,8 +53,6 @@ To get your Lemonfox.ai API key:
 Run the development server:
 
 ```bash
-npm run dev
-# or
 yarn dev
 ```
 
@@ -101,8 +97,8 @@ The application is optimized for deployment on Render.com with the following fea
    3. Create a new Web Service
    4. Connect your repository
    5. Use the following settings:
-      - Build Command: `bun install && bun run build`
-      - Start Command: `bun run start`
+      - Build Command: `yarn install && yarn build`
+      - Start Command: `yarn start`
    6. Add environment variable:
       - LEMONFOX_API_KEY: (your api key)
 
