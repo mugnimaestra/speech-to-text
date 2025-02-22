@@ -7,6 +7,7 @@ import {
   FILE_SIZE_ERROR,
   AllowedFormat,
 } from "@/lib/constants";
+import { Readable } from "stream";
 
 const API_URL = "https://api.lemonfox.ai/v1/audio/transcriptions";
 
@@ -28,6 +29,12 @@ const debug = {
   },
 };
 
+// Helper function to convert File/Blob to Buffer
+async function fileToBuffer(file: File): Promise<Buffer> {
+  const arrayBuffer = await file.arrayBuffer();
+  return Buffer.from(arrayBuffer);
+}
+
 export async function POST(request: NextRequest) {
   try {
     debug.log("=== Starting file upload process ===");
@@ -45,6 +52,7 @@ export async function POST(request: NextRequest) {
 
     const formData = await request.formData();
     const fileOrUrl = formData.get("file");
+    const prompt = formData.get("prompt");
     debug.log("File or URL type:", typeof fileOrUrl);
     debug.log("Is File instance:", fileOrUrl instanceof File);
     if (fileOrUrl instanceof File) {
@@ -54,8 +62,6 @@ export async function POST(request: NextRequest) {
         size: fileOrUrl.size,
       });
     }
-
-    const prompt = formData.get("prompt");
     debug.log("Prompt received:", prompt);
 
     if (!fileOrUrl) {
@@ -65,7 +71,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Prepare form data for Lemonfox API
+    // Create a new server-side FormData instance
     const lemonfoxFormData = new FormData();
     debug.log("Created new FormData for Lemonfox");
 
@@ -103,19 +109,19 @@ export async function POST(request: NextRequest) {
 
       try {
         debug.log("Converting file to buffer");
-        const buffer = await fileOrUrl.arrayBuffer();
-        debug.log("Buffer created, size:", buffer.byteLength);
+        const buffer = await fileToBuffer(fileOrUrl);
+        debug.log("Buffer created, size:", buffer.length);
 
-        // Try different approach with Buffer
-        const nodeBuffer = Buffer.from(buffer);
-        debug.log("Node Buffer created, size:", nodeBuffer.length);
+        debug.log("Creating readable stream from buffer");
+        const stream = Readable.from(buffer);
 
-        lemonfoxFormData.append("file", nodeBuffer, {
+        debug.log("Appending file to FormData with metadata");
+        lemonfoxFormData.append("file", stream, {
           filename: fileOrUrl.name,
           contentType: fileOrUrl.type,
-          knownLength: nodeBuffer.length,
+          knownLength: buffer.length,
         });
-        debug.log("File appended to FormData with metadata");
+        debug.log("File successfully appended to FormData");
       } catch (error) {
         debug.error("Error processing file:", error);
         throw error;
@@ -128,23 +134,25 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Add Lemonfox-specific parameters for speaker diarization and prompt
+    // Add Lemonfox-specific parameters
+    debug.log("Adding Lemonfox-specific parameters");
     lemonfoxFormData.append("response_format", "verbose_json");
     lemonfoxFormData.append("speaker_labels", "true");
     if (prompt) {
       lemonfoxFormData.append("prompt", prompt);
+      debug.log("Added prompt to FormData");
     }
 
-    // Add callback URL for long transcriptions
-    // Use the absolute URL for the callback endpoint
-    const protocol = process.env.NODE_ENV === "development" ? "http" : "https";
-    const host = request.headers.get("host") || "";
-    const callbackUrl = `${protocol}://${host}/api/transcription-callback`;
-    lemonfoxFormData.append("callback_url", callbackUrl);
-
-    // Optional: Add min/max speakers if needed
-    // lemonfoxFormData.append('min_speakers', '2');
-    // lemonfoxFormData.append('max_speakers', '4');
+    // Add callback URL only in production environment
+    if (process.env.NODE_ENV === "production") {
+      const protocol = "https"; // Always use HTTPS in production
+      const host = request.headers.get("host") || "";
+      const callbackUrl = `${protocol}://${host}/api/transcription-callback`;
+      lemonfoxFormData.append("callback_url", callbackUrl);
+      debug.log("Added callback URL:", callbackUrl);
+    } else {
+      debug.log("Skipping callback URL in development environment");
+    }
 
     // Validate API key exists
     const apiKey = process.env.LEMONFOX_API_KEY;
@@ -156,20 +164,23 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Call Lemonfox API
+    debug.log("Preparing to make API call to Lemonfox");
+    // Call Lemonfox API with the form-data
     const response = await axios.post(API_URL, lemonfoxFormData, {
       headers: {
         Authorization: `Bearer ${apiKey}`,
-        ...lemonfoxFormData.getHeaders(),
+        ...lemonfoxFormData.getHeaders(), // Important for multipart/form-data
       },
       maxBodyLength: FILE_LIMITS.URL_MAX_SIZE,
       timeout: 900000, // 15 minutes timeout
       timeoutErrorMessage:
         "Transcription request timed out. Please try again with a shorter audio file or use the URL method for large files.",
     });
+    debug.log("API call successful, processing response");
 
     // Extract text and segments from verbose_json response
     const { text, segments } = response.data;
+    debug.log("Extracted text and segments from response");
 
     // Structure the conversation based on segments
     const structuredConversation = segments.map((segment: any) => ({
@@ -180,15 +191,23 @@ export async function POST(request: NextRequest) {
         end: segment.end,
       },
     }));
+    debug.log("Structured conversation created");
 
     return NextResponse.json({ text, segments, structuredConversation });
   } catch (error) {
     debug.error("Transcription error:", error);
 
     if (axios.isAxiosError(error)) {
-      // Sanitize error messages
+      // Log the full error response for debugging
+      debug.error("API Error Response:", error.response?.data);
+
       const statusCode = error.response?.status || 500;
       let message = "Failed to transcribe audio/video";
+
+      // Use the API's error message if available
+      if (error.response?.data?.error?.message) {
+        message = error.response.data.error.message;
+      }
 
       // Map specific error cases to user-friendly messages
       if (statusCode === 401 || statusCode === 403) {
@@ -199,7 +218,14 @@ export async function POST(request: NextRequest) {
         message = FILE_SIZE_ERROR.INVALID_FORMAT("unknown format");
       }
 
-      return NextResponse.json({ message }, { status: statusCode });
+      return NextResponse.json(
+        {
+          message,
+          details:
+            error.response?.data?.error || "No additional details available",
+        },
+        { status: statusCode }
+      );
     }
 
     return NextResponse.json(

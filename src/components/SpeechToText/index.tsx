@@ -27,17 +27,24 @@ export default function SpeechToText({
     <div className="w-full max-w-2xl mx-auto p-6 space-y-6">
       <URLInput
         onSubmit={handleUrl}
-        isTranscribing={transcriptionStatus !== "idle"}
+        isTranscribing={
+          transcriptionStatus === "uploading" ||
+          transcriptionStatus === "processing"
+        }
       />
 
       <FileDropZone
         onFileSelect={handleFile}
         onError={handleError}
-        isTranscribing={transcriptionStatus !== "idle"}
+        isTranscribing={
+          transcriptionStatus === "uploading" ||
+          transcriptionStatus === "processing"
+        }
         currentFile={input?.type === "file" ? (input.data as File) : null}
       />
 
-      {transcriptionStatus !== "idle" && (
+      {(transcriptionStatus === "uploading" ||
+        transcriptionStatus === "processing") && (
         <div className="mt-4 text-center">
           <div className="flex flex-col items-center space-y-2" role="status">
             {transcriptionStatus !== "completed" && (
@@ -70,10 +77,27 @@ export default function SpeechToText({
         <TranscriptionResult
           text={transcription.text}
           segments={transcription.segments}
+          structuredConversation={transcription.structuredConversation}
           error={transcription.error}
-          onCopy={async () => {
+          onCopy={async (format) => {
             if (!transcription.text) return;
-            await navigator.clipboard.writeText(transcription.text);
+
+            if (format === "raw") {
+              await navigator.clipboard.writeText(transcription.text);
+            } else {
+              // Format verbose text with speaker information
+              let verboseText = "";
+              if (transcription.structuredConversation) {
+                verboseText = transcription.structuredConversation
+                  .map((item) => `[${item.role}] ${item.text}\n`)
+                  .join("\n");
+              } else if (transcription.segments) {
+                verboseText = transcription.segments
+                  .map((segment) => `[${segment.speaker}] ${segment.text}\n`)
+                  .join("\n");
+              }
+              await navigator.clipboard.writeText(verboseText);
+            }
           }}
         />
       )}

@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { transcriptionResults } from "../../transcription-callback/route";
+import { transcriptionStore } from "@/lib/transcriptionStore";
 
 export async function GET(
   request: NextRequest,
@@ -8,7 +8,7 @@ export async function GET(
   const { resultId } = params;
 
   // Check if we have results for this ID
-  const result = transcriptionResults.get(resultId);
+  const result = transcriptionStore.get(resultId);
 
   if (!result) {
     return NextResponse.json(
@@ -17,7 +17,5 @@ export async function GET(
     );
   }
 
-  // Return the transcription result and clean up
-  transcriptionResults.delete(resultId); // Remove after retrieving
   return NextResponse.json(result);
 }

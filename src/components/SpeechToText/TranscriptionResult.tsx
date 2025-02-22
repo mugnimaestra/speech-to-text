@@ -7,7 +7,7 @@ type TranscriptionResultProps = {
   segments?: Segment[];
   structuredConversation?: StructuredConversation[];
   error?: string;
-  onCopy: () => Promise<void>;
+  onCopy: (format: "raw" | "verbose") => Promise<void>;
 };
 
 export function TranscriptionResult({
@@ -18,10 +18,11 @@ export function TranscriptionResult({
   onCopy,
 }: TranscriptionResultProps) {
   const [showToast, setShowToast] = useState(false);
+  const [copyFormat, setCopyFormat] = useState<"raw" | "verbose">("raw");
 
   const handleCopy = async () => {
     try {
-      await onCopy();
+      await onCopy(copyFormat);
       setShowToast(true);
     } catch (error) {
       console.error("Failed to copy text:", error);
@@ -41,13 +42,26 @@ export function TranscriptionResult({
             >
               <span aria-hidden="true">📝</span> Transcription
             </h3>
-            <button
-              onClick={handleCopy}
-              className="px-4 py-2 text-sm bg-emerald-500 text-white rounded hover:bg-emerald-600 transition-colors flex items-center gap-2 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:ring-offset-2"
-              aria-label="Copy transcription to clipboard"
-            >
-              <span aria-hidden="true">📋</span> Copy to Clipboard
-            </button>
+            <div className="flex items-center gap-2">
+              <select
+                value={copyFormat}
+                onChange={(e) =>
+                  setCopyFormat(e.target.value as "raw" | "verbose")
+                }
+                className="text-sm border border-emerald-200 rounded px-2 py-1 focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                aria-label="Select copy format"
+              >
+                <option value="raw">Raw Text</option>
+                <option value="verbose">Detailed (with Speakers)</option>
+              </select>
+              <button
+                onClick={handleCopy}
+                className="px-4 py-2 text-sm bg-emerald-500 text-white rounded hover:bg-emerald-600 transition-colors flex items-center gap-2 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:ring-offset-2"
+                aria-label="Copy transcription to clipboard"
+              >
+                <span aria-hidden="true">📋</span> Copy to Clipboard
+              </button>
+            </div>
           </div>
           <div
             className="p-4 bg-emerald-50 rounded-lg border border-emerald-100"

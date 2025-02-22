@@ -1,16 +1,29 @@
 export const ALLOWED_FORMATS = [
+  // Audio formats
   "audio/mp3",
+  "audio/mpeg",
   "audio/wav",
+  "audio/wave",
+  "audio/x-wav",
   "audio/flac",
+  "audio/x-flac",
   "audio/aac",
   "audio/opus",
   "audio/ogg",
+  "audio/vorbis",
   "audio/m4a",
   "audio/mpeg",
+  "audio/x-m4a",
+  "audio/mp4",
+  "audio/x-mp4",
+  // Video formats
   "video/mp4",
   "video/mpeg",
   "video/mov",
+  "video/quicktime",
   "video/webm",
+  // Generic formats that might be used
+  "application/ogg",
 ] as const;
 
 export type AllowedFormat = (typeof ALLOWED_FORMATS)[number];

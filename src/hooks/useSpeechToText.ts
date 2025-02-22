@@ -186,9 +186,11 @@ export function useSpeechToText(
     (error: string) => {
       setState((prev) => ({
         ...prev,
+        input: null,
         status: "error",
         transcription: { text: "", segments: [], error },
         processingStartTime: null,
+        transcriptionId: null,
       }));
       callbacks?.onError?.(error);
     },

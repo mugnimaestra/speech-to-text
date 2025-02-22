@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { TranscriptionResult } from "@/components/SpeechToText/types";
+import { transcriptionStore } from "@/lib/transcriptionStore";
 
 // Validate that the request is coming from Lemonfox
 const validateRequest = (request: NextRequest): boolean => {
@@ -19,21 +20,13 @@ export async function POST(request: NextRequest) {
     // Parse the transcription result
     const transcriptionResult: TranscriptionResult = await request.json();
 
-    // Here you can:
-    // 1. Store the result in a database
-    // 2. Emit a server-sent event
-    // 3. Update a WebSocket connection
-    // 4. Or use any other method to notify the client
+    // Store the result and get an ID
+    const resultId = transcriptionStore.store(transcriptionResult);
 
-    // For now, let's just log it in development
+    // For development logging
     if (process.env.NODE_ENV === "development") {
       console.log("Received transcription callback:", transcriptionResult);
     }
-
-    // Store the result in server memory (temporary solution)
-    // In production, you should use a proper database
-    const resultId = Date.now().toString();
-    transcriptionResults.set(resultId, transcriptionResult);
 
     return NextResponse.json({ success: true, resultId });
   } catch (error) {
@@ -44,10 +37,3 @@ export async function POST(request: NextRequest) {
     );
   }
 }
-
-// Temporary storage for transcription results
-// In production, use a proper database
-const transcriptionResults = new Map<string, TranscriptionResult>();
-
-// Export the map so it can be accessed by the polling endpoint
-export { transcriptionResults };
