@@ -228,6 +228,16 @@ export interface TranscriptionResult {
 }
 
 /**
+ * Represents the current status of a transcription process
+ */
+export type TranscriptionStatus =
+  | "idle"
+  | "uploading"
+  | "processing"
+  | "completed"
+  | "error";
+
+/**
  * Props for the SpeechToText component that handles audio transcription.
  *
  * @example
@@ -248,3 +258,15 @@ export interface SpeechToTextProps {
   onTranscriptionComplete?: (result: TranscriptionResult) => void;
   onError?: (error: string) => void;
 }
+
+/**
+ * Status messages for different transcription stages
+ */
+export const TRANSCRIPTION_STATUS_MESSAGES = {
+  idle: "",
+  uploading: "Uploading your media file...",
+  processing:
+    "Processing your transcription. This may take several minutes for longer files...",
+  completed: "Transcription completed!",
+  error: "An error occurred during transcription.",
+} as const;

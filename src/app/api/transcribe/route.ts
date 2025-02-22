@@ -135,6 +135,13 @@ export async function POST(request: NextRequest) {
       lemonfoxFormData.append("prompt", prompt);
     }
 
+    // Add callback URL for long transcriptions
+    // Use the absolute URL for the callback endpoint
+    const protocol = process.env.NODE_ENV === "development" ? "http" : "https";
+    const host = request.headers.get("host") || "";
+    const callbackUrl = `${protocol}://${host}/api/transcription-callback`;
+    lemonfoxFormData.append("callback_url", callbackUrl);
+
     // Optional: Add min/max speakers if needed
     // lemonfoxFormData.append('min_speakers', '2');
     // lemonfoxFormData.append('max_speakers', '4');
@@ -156,6 +163,9 @@ export async function POST(request: NextRequest) {
         ...lemonfoxFormData.getHeaders(),
       },
       maxBodyLength: FILE_LIMITS.URL_MAX_SIZE,
+      timeout: 900000, // 15 minutes timeout
+      timeoutErrorMessage:
+        "Transcription request timed out. Please try again with a shorter audio file or use the URL method for large files.",
     });
 
     // Extract text and segments from verbose_json response
