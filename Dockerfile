@@ -7,8 +7,9 @@ WORKDIR /app
 # Install yarn
 RUN corepack enable && corepack prepare yarn@4.1.0 --activate
 
-# Copy package.json and yarn.lock
-COPY package.json yarn.lock ./
+# Copy package.json, yarn.lock, and yarn configuration files
+COPY package.json yarn.lock .yarnrc.yml ./
+COPY .yarn ./.yarn
 
 # Install dependencies
 RUN yarn install
