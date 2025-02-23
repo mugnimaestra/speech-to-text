@@ -147,9 +147,21 @@ export async function POST(request: NextRequest) {
     if (process.env.NODE_ENV === "production") {
       const protocol = "https"; // Always use HTTPS in production
       const host = request.headers.get("host") || "";
-      const callbackUrl = `${protocol}://${host}/api/transcription-callback`;
-      lemonfoxFormData.append("callback_url", callbackUrl);
-      debug.log("Added callback URL:", callbackUrl);
+
+      // Skip callback for localhost and invalid hosts
+      if (!host || host.includes("localhost") || host.includes("127.0.0.1")) {
+        debug.log("Skipping callback URL for localhost/invalid host:", host);
+      } else {
+        const callbackUrl = `${protocol}://${host}/api/transcription-callback`;
+        try {
+          // Validate the callback URL
+          new URL(callbackUrl);
+          lemonfoxFormData.append("callback_url", callbackUrl);
+          debug.log("Added callback URL:", callbackUrl);
+        } catch (error) {
+          debug.error("Invalid callback URL format:", callbackUrl);
+        }
+      }
     } else {
       debug.log("Skipping callback URL in development environment");
     }
@@ -200,6 +212,8 @@ export async function POST(request: NextRequest) {
     if (axios.isAxiosError(error)) {
       // Log the full error response for debugging
       debug.error("API Error Response:", error.response?.data);
+      debug.error("API Error Status:", error.response?.status);
+      debug.error("API Error Headers:", error.response?.headers);
 
       const statusCode = error.response?.status || 500;
       let message = "Failed to transcribe audio/video";
@@ -209,13 +223,31 @@ export async function POST(request: NextRequest) {
         message = error.response.data.error.message;
       }
 
-      // Map specific error cases to user-friendly messages
-      if (statusCode === 401 || statusCode === 403) {
-        message = "Service authentication error";
-      } else if (statusCode === 413) {
-        message = FILE_SIZE_ERROR.OVER_LIMIT;
-      } else if (statusCode === 415) {
-        message = FILE_SIZE_ERROR.INVALID_FORMAT("unknown format");
+      // Enhanced error status code logging and handling
+      switch (statusCode) {
+        case 400:
+          debug.error("Bad Request: Invalid parameters or malformed request");
+          message = "Invalid request parameters";
+          break;
+        case 401:
+        case 403:
+          debug.error("Authentication Error: Invalid or missing API key");
+          message = "Service authentication error";
+          break;
+        case 413:
+          debug.error("File Size Error: File exceeds maximum size limit");
+          message = FILE_SIZE_ERROR.OVER_LIMIT;
+          break;
+        case 415:
+          debug.error("Unsupported Media Type: Invalid file format");
+          message = FILE_SIZE_ERROR.INVALID_FORMAT("unknown format");
+          break;
+        case 429:
+          debug.error("Rate Limit Error: Too many requests");
+          message = "Rate limit exceeded. Please try again later";
+          break;
+        default:
+          debug.error(`Unexpected Error Status Code: ${statusCode}`);
       }
 
       return NextResponse.json(
@@ -223,13 +255,19 @@ export async function POST(request: NextRequest) {
           message,
           details:
             error.response?.data?.error || "No additional details available",
+          status: statusCode,
         },
         { status: statusCode }
       );
     }
 
+    debug.error("Non-Axios error occurred:", error);
     return NextResponse.json(
-      { message: "Internal server error" },
+      {
+        message: "Internal server error",
+        status: 500,
+        details: error instanceof Error ? error.message : "Unknown error",
+      },
       { status: 500 }
     );
   }

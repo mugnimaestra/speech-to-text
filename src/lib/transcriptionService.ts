@@ -4,6 +4,15 @@ export type TranscriptionProgressCallback = (
   status: "uploading" | "processing"
 ) => void;
 
+// Polling configuration
+const POLLING_CONFIG = {
+  INITIAL_INTERVAL: 2000, // 2 seconds
+  MAX_INTERVAL: 10000, // 10 seconds
+  INTERVAL_INCREASE_AFTER: 30, // Increase interval after 30 attempts (1 minute)
+  MAX_DURATION: 3600000, // 1 hour in milliseconds
+  MAX_ATTEMPTS: 720, // Maximum number of polling attempts
+} as const;
+
 export async function transcribeAudio(
   fileOrUrl: File | string,
   onProgress?: TranscriptionProgressCallback
@@ -35,10 +44,11 @@ export async function transcribeAudio(
 }
 
 async function pollForResults(resultId: string): Promise<TranscriptionResult> {
-  const maxAttempts = 720; // Poll for up to 1 hour (720 attempts * 5 seconds = 3600 seconds)
-  let interval = 2000; // Start with 2 seconds interval
+  const startTime = Date.now();
+  let interval = POLLING_CONFIG.INITIAL_INTERVAL;
+  let attempts = 0;
 
-  for (let attempt = 0; attempt < maxAttempts; attempt++) {
+  while (attempts < POLLING_CONFIG.MAX_ATTEMPTS) {
     try {
       const response = await fetch(`/api/transcription-status/${resultId}`);
 
@@ -52,15 +62,23 @@ async function pollForResults(resultId: string): Promise<TranscriptionResult> {
         throw new Error(error.message);
       }
 
-      // Gradually increase the interval after the first minute
-      if (attempt > 30) {
-        interval = 10000; // Switch to 10 seconds after first minute
+      // Check if we've exceeded the maximum duration
+      if (Date.now() - startTime > POLLING_CONFIG.MAX_DURATION) {
+        throw new Error(
+          "Transcription timed out after 1 hour. Please try again or use a shorter audio file."
+        );
+      }
+
+      // Gradually increase the interval after the initial period
+      if (attempts > POLLING_CONFIG.INTERVAL_INCREASE_AFTER) {
+        interval = Math.min(interval * 1.5, POLLING_CONFIG.MAX_INTERVAL);
       }
 
       // Wait before next attempt
       await new Promise((resolve) => setTimeout(resolve, interval));
+      attempts++;
     } catch (error) {
-      if (attempt === maxAttempts - 1) {
+      if (attempts === POLLING_CONFIG.MAX_ATTEMPTS - 1) {
         throw error;
       }
       // Continue polling on error unless it's the last attempt

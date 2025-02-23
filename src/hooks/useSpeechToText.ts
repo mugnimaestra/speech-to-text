@@ -5,6 +5,10 @@ import {
 } from "@/components/SpeechToText/types";
 import { transcribeAudio } from "@/lib/transcriptionService";
 
+// Import polling configuration from transcriptionService
+const POLLING_INTERVAL = 2000; // Match initial interval from transcriptionService
+const MAX_POLLING_INTERVAL = 10000; // Maximum polling interval
+
 interface TranscriptionResponse extends TranscriptionResult {
   resultId?: string;
 }
@@ -131,12 +135,30 @@ export function useSpeechToText(
     }
   }, [isActiveTranscription]);
 
+  const handleError = useCallback(
+    (error: string) => {
+      setState((prev) => ({
+        ...prev,
+        input: null,
+        status: "error",
+        transcription: { text: "", segments: [], error },
+        processingStartTime: null,
+        transcriptionId: null,
+      }));
+      callbacks?.onError?.(error);
+    },
+    [callbacks]
+  );
+
   // Add polling effect when we have a transcriptionId
   useEffect(() => {
     if (!state.transcriptionId || state.status !== "processing") return;
 
     let isSubscribed = true;
-    const pollInterval = setInterval(async () => {
+    let attempts = 0;
+    let currentInterval = POLLING_INTERVAL;
+
+    const poll = async () => {
       try {
         const response = await fetch(
           `/api/transcription-status/${state.transcriptionId}`
@@ -154,25 +176,41 @@ export function useSpeechToText(
             transcriptionId: null,
           }));
           callbacks?.onTranscriptionComplete?.(result);
-          clearInterval(pollInterval);
+          return true; // Signal to stop polling
         } else if (response.status !== 404) {
           // If we get any error other than 404 (not found), handle it
           const error = await response.json();
           throw new Error(error.message);
         }
-        // If 404, keep polling
+
+        // Increase polling interval after first minute (30 attempts)
+        attempts++;
+        if (attempts > 30 && currentInterval < MAX_POLLING_INTERVAL) {
+          currentInterval = Math.min(
+            currentInterval * 1.5,
+            MAX_POLLING_INTERVAL
+          );
+        }
+        return false; // Continue polling
       } catch (error) {
-        if (!isSubscribed) return;
+        if (!isSubscribed) return true;
         handleError((error as Error).message);
+        return true; // Stop polling on error
+      }
+    };
+
+    const pollInterval = setInterval(async () => {
+      const shouldStop = await poll();
+      if (shouldStop) {
         clearInterval(pollInterval);
       }
-    }, 5000); // Poll every 5 seconds
+    }, currentInterval);
 
     return () => {
       isSubscribed = false;
       clearInterval(pollInterval);
     };
-  }, [state.transcriptionId, state.status, callbacks]);
+  }, [state.transcriptionId, state.status, callbacks, handleError]);
 
   const getProcessingTime = useCallback(() => {
     if (!state.processingStartTime) return "";
@@ -181,21 +219,6 @@ export function useSpeechToText(
     );
     return minutes > 0 ? `${minutes} minute${minutes > 1 ? "s" : ""}` : "";
   }, [state.processingStartTime]);
-
-  const handleError = useCallback(
-    (error: string) => {
-      setState((prev) => ({
-        ...prev,
-        input: null,
-        status: "error",
-        transcription: { text: "", segments: [], error },
-        processingStartTime: null,
-        transcriptionId: null,
-      }));
-      callbacks?.onError?.(error);
-    },
-    [callbacks]
-  );
 
   const handleFile = useCallback(
     async (file: File) => {
