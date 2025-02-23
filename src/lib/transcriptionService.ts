@@ -35,7 +35,7 @@ export async function transcribeAudio(
 }
 
 async function pollForResults(resultId: string): Promise<TranscriptionResult> {
-  const maxAttempts = 180; // Poll for up to 30 minutes
+  const maxAttempts = 720; // Poll for up to 1 hour (720 attempts * 5 seconds = 3600 seconds)
   let interval = 2000; // Start with 2 seconds interval
 
   for (let attempt = 0; attempt < maxAttempts; attempt++) {
@@ -68,6 +68,6 @@ async function pollForResults(resultId: string): Promise<TranscriptionResult> {
   }
 
   throw new Error(
-    "Transcription timed out after 30 minutes. Please try again or use a shorter audio file."
+    "Transcription timed out after 1 hour. Please try again or use a shorter audio file."
   );
 }

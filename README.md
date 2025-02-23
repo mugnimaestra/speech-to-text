@@ -89,7 +89,7 @@ The application is optimized for deployment on Render.com with the following fea
 1. **File Size Support**
    - Direct file uploads up to 100MB
    - URL-based uploads up to 1GB
-   - No timeout issues for long transcriptions (up to 15 minutes)
+   - No timeout issues for long transcriptions (up to 1 hour)
 
 2. **Deployment Steps**
    1. Push your code to GitHub/GitLab

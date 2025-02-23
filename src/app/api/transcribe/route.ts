@@ -13,7 +13,7 @@ const API_URL = "https://api.lemonfox.ai/v1/audio/transcriptions";
 
 // Add runtime config for longer timeout
 export const runtime = "nodejs";
-export const maxDuration = 900; // 15 minutes in seconds
+export const maxDuration = 3600; // 1 hour in seconds
 
 // Debug logger that only logs in development
 const debug = {
@@ -172,7 +172,7 @@ export async function POST(request: NextRequest) {
         ...lemonfoxFormData.getHeaders(), // Important for multipart/form-data
       },
       maxBodyLength: FILE_LIMITS.URL_MAX_SIZE,
-      timeout: 900000, // 15 minutes timeout
+      timeout: 3600000, // 1 hour timeout
       timeoutErrorMessage:
         "Transcription request timed out. Please try again with a shorter audio file or use the URL method for large files.",
     });
