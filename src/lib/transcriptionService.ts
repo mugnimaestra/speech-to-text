@@ -14,14 +14,9 @@ const POLLING_CONFIG = {
 } as const;
 
 export async function transcribeAudio(
-  fileOrUrl: File | string,
-  onProgress?: TranscriptionProgressCallback,
-  language: string = "id" // Default to Indonesian
+  formData: FormData,
+  onProgress?: TranscriptionProgressCallback
 ): Promise<TranscriptionResult> {
-  const formData = new FormData();
-  formData.append("file", fileOrUrl);
-  formData.append("language", language);
-
   // Start the transcription
   onProgress?.("uploading");
   const response = await fetch("/api/transcribe", {

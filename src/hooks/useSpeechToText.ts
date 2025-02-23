@@ -38,6 +38,10 @@ interface UseSpeechToTextCallbacks {
   onError?: (error: string) => void;
   /** Selected language for transcription */
   language?: string;
+  /** Minimum number of speakers expected in the audio */
+  minSpeakers?: number;
+  /** Maximum number of speakers expected in the audio */
+  maxSpeakers?: number;
 }
 
 interface UseSpeechToTextReturn
@@ -110,6 +114,8 @@ export function useSpeechToText({
   onTranscriptionComplete,
   onError,
   language = "id",
+  minSpeakers = 1,
+  maxSpeakers = 2,
 }: UseSpeechToTextCallbacks = {}): UseSpeechToTextReturn {
   const [state, setState] = useState<UseSpeechToTextState>({
     input: null,
@@ -241,13 +247,15 @@ export function useSpeechToText({
       }));
 
       try {
-        const result = (await transcribeAudio(
-          file,
-          (status) => {
-            setState((prev) => ({ ...prev, status }));
-          },
-          language
-        )) as TranscriptionResponse;
+        const formData = new FormData();
+        formData.append("file", file);
+        formData.append("language", language);
+        formData.append("min_speakers", minSpeakers.toString());
+        formData.append("max_speakers", maxSpeakers.toString());
+
+        const result = (await transcribeAudio(formData, (status) => {
+          setState((prev) => ({ ...prev, status }));
+        })) as TranscriptionResponse;
 
         // If we got a transcriptionId, update state for polling
         if (result.resultId) {
@@ -271,7 +279,7 @@ export function useSpeechToText({
         handleError((error as Error).message);
       }
     },
-    [onTranscriptionComplete, handleError, language]
+    [onTranscriptionComplete, handleError, language, minSpeakers, maxSpeakers]
   );
 
   const handleUrl = useCallback(
@@ -298,13 +306,15 @@ export function useSpeechToText({
       }));
 
       try {
-        const result = (await transcribeAudio(
-          url,
-          (status) => {
-            setState((prev) => ({ ...prev, status }));
-          },
-          language
-        )) as TranscriptionResponse;
+        const formData = new FormData();
+        formData.append("file", url);
+        formData.append("language", language);
+        formData.append("min_speakers", minSpeakers.toString());
+        formData.append("max_speakers", maxSpeakers.toString());
+
+        const result = (await transcribeAudio(formData, (status) => {
+          setState((prev) => ({ ...prev, status }));
+        })) as TranscriptionResponse;
 
         // If we got a transcriptionId, update state for polling
         if (result.resultId) {
@@ -328,7 +338,7 @@ export function useSpeechToText({
         handleError((error as Error).message);
       }
     },
-    [onTranscriptionComplete, handleError, language]
+    [onTranscriptionComplete, handleError, language, minSpeakers, maxSpeakers]
   );
 
   return {

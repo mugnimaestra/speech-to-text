@@ -138,6 +138,28 @@ export async function POST(request: NextRequest) {
     debug.log("Adding Lemonfox-specific parameters");
     lemonfoxFormData.append("response_format", "verbose_json");
     lemonfoxFormData.append("speaker_labels", "true");
+
+    // Get and validate language
+    const language = formData.get("language");
+    if (language) {
+      lemonfoxFormData.append("language", language);
+      debug.log("Added language:", language);
+    }
+
+    // Get and validate speaker configuration
+    const minSpeakers = formData.get("min_speakers");
+    const maxSpeakers = formData.get("max_speakers");
+
+    if (minSpeakers) {
+      lemonfoxFormData.append("min_speakers", minSpeakers);
+      debug.log("Added min_speakers:", minSpeakers);
+    }
+
+    if (maxSpeakers) {
+      lemonfoxFormData.append("max_speakers", maxSpeakers);
+      debug.log("Added max_speakers:", maxSpeakers);
+    }
+
     if (prompt) {
       lemonfoxFormData.append("prompt", prompt);
       debug.log("Added prompt to FormData");

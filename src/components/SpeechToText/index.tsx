@@ -5,6 +5,7 @@ import { useSpeechToText } from "@/hooks/useSpeechToText";
 import { URLInput } from "./URLInput";
 import { FileDropZone } from "./FileDropZone";
 import { TranscriptionResult } from "./TranscriptionResult";
+import { SpeakerConfig } from "./SpeakerConfig";
 import LanguageSelector from "../LanguageSelector";
 import { useState } from "react";
 
@@ -13,6 +14,9 @@ export default function SpeechToText({
   onError,
 }: SpeechToTextProps) {
   const [selectedLanguage, setSelectedLanguage] = useState("id");
+  const [minSpeakers, setMinSpeakers] = useState(1);
+  const [maxSpeakers, setMaxSpeakers] = useState(2);
+
   const {
     input,
     status: transcriptionStatus,
@@ -25,12 +29,22 @@ export default function SpeechToText({
     onTranscriptionComplete,
     onError,
     language: selectedLanguage,
+    minSpeakers,
+    maxSpeakers,
   });
+
+  const handleSpeakerConfigChange = (min: number, max: number) => {
+    setMinSpeakers(min);
+    setMaxSpeakers(max);
+  };
 
   return (
     <div className="w-full max-w-2xl mx-auto p-6 space-y-6">
       <div className="space-y-6">
-        <LanguageSelector onLanguageChange={setSelectedLanguage} />
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <LanguageSelector onLanguageChange={setSelectedLanguage} />
+          <SpeakerConfig onSpeakerConfigChange={handleSpeakerConfigChange} />
+        </div>
 
         <URLInput
           onSubmit={handleUrl}
