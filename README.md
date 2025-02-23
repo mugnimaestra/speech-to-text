@@ -95,14 +95,19 @@ The application is optimized for deployment on Railway.app with the following fe
 2. **Deployment Steps**
    1. Push your code to GitHub/GitLab
    2. Create an account on [Railway.app](https://railway.app)
-   3. Create a new project
+   3. Create a new project and select "Deploy from GitHub repo"
    4. Connect your repository
-   5. Add environment variables:
-      - LEMONFOX_API_KEY: (your api key)
-      - NEXT_PUBLIC_ACCESS_CODE: (your chosen access code for authentication)
-   6. Railway will automatically detect the Dockerfile and deploy your application
+   5. Select the "Next.js" template when prompted
+   6. Add environment variables in Railway's dashboard:
+      - LEMONFOX_API_KEY: Your Lemonfox API key (required)
+      - NEXT_PUBLIC_ACCESS_CODE: Your chosen access code for authentication (required)
+   7. Railway will automatically:
+      - Detect your Next.js application
+      - Install dependencies
+      - Build the application
+      - Deploy it with the proper configuration
 
-Note: Environment variables set in Railway.app will automatically be available to your application during build and runtime. No additional Docker configuration is needed for environment variables.
+Note: Railway automatically detects and optimizes the deployment for Next.js applications. You don't need any additional Docker configuration as Railway handles the build and deployment process natively.
 
 ## Error Handling
 
