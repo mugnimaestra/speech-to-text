@@ -15,10 +15,12 @@ const POLLING_CONFIG = {
 
 export async function transcribeAudio(
   fileOrUrl: File | string,
-  onProgress?: TranscriptionProgressCallback
+  onProgress?: TranscriptionProgressCallback,
+  language: string = "id" // Default to Indonesian
 ): Promise<TranscriptionResult> {
   const formData = new FormData();
   formData.append("file", fileOrUrl);
+  formData.append("language", language);
 
   // Start the transcription
   onProgress?.("uploading");
@@ -45,7 +47,7 @@ export async function transcribeAudio(
 
 async function pollForResults(resultId: string): Promise<TranscriptionResult> {
   const startTime = Date.now();
-  let interval = POLLING_CONFIG.INITIAL_INTERVAL;
+  let interval: number = POLLING_CONFIG.INITIAL_INTERVAL;
   let attempts = 0;
 
   while (attempts < POLLING_CONFIG.MAX_ATTEMPTS) {

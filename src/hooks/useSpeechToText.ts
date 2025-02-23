@@ -36,6 +36,8 @@ interface UseSpeechToTextCallbacks {
   onTranscriptionComplete?: (result: TranscriptionResult) => void;
   /** Callback when an error occurs during transcription */
   onError?: (error: string) => void;
+  /** Selected language for transcription */
+  language?: string;
 }
 
 interface UseSpeechToTextReturn
@@ -104,9 +106,11 @@ interface UseSpeechToTextReturn
  * @param callbacks - Object containing callback functions for transcription completion and errors
  * @returns Object containing transcription state and handler functions
  */
-export function useSpeechToText(
-  callbacks?: UseSpeechToTextCallbacks
-): UseSpeechToTextReturn {
+export function useSpeechToText({
+  onTranscriptionComplete,
+  onError,
+  language = "id",
+}: UseSpeechToTextCallbacks = {}): UseSpeechToTextReturn {
   const [state, setState] = useState<UseSpeechToTextState>({
     input: null,
     status: "idle",
@@ -145,9 +149,9 @@ export function useSpeechToText(
         processingStartTime: null,
         transcriptionId: null,
       }));
-      callbacks?.onError?.(error);
+      onError?.(error);
     },
-    [callbacks]
+    [onError]
   );
 
   // Add polling effect when we have a transcriptionId
@@ -175,7 +179,7 @@ export function useSpeechToText(
             processingStartTime: null,
             transcriptionId: null,
           }));
-          callbacks?.onTranscriptionComplete?.(result);
+          onTranscriptionComplete?.(result);
           return true; // Signal to stop polling
         } else if (response.status !== 404) {
           // If we get any error other than 404 (not found), handle it
@@ -210,7 +214,12 @@ export function useSpeechToText(
       isSubscribed = false;
       clearInterval(pollInterval);
     };
-  }, [state.transcriptionId, state.status, callbacks, handleError]);
+  }, [
+    state.transcriptionId,
+    state.status,
+    onTranscriptionComplete,
+    handleError,
+  ]);
 
   const getProcessingTime = useCallback(() => {
     if (!state.processingStartTime) return "";
@@ -232,9 +241,13 @@ export function useSpeechToText(
       }));
 
       try {
-        const result = (await transcribeAudio(file, (status) => {
-          setState((prev) => ({ ...prev, status }));
-        })) as TranscriptionResponse;
+        const result = (await transcribeAudio(
+          file,
+          (status) => {
+            setState((prev) => ({ ...prev, status }));
+          },
+          language
+        )) as TranscriptionResponse;
 
         // If we got a transcriptionId, update state for polling
         if (result.resultId) {
@@ -253,12 +266,12 @@ export function useSpeechToText(
           transcription: result,
           processingStartTime: null,
         }));
-        callbacks?.onTranscriptionComplete?.(result);
+        onTranscriptionComplete?.(result);
       } catch (error) {
         handleError((error as Error).message);
       }
     },
-    [callbacks, handleError]
+    [onTranscriptionComplete, handleError, language]
   );
 
   const handleUrl = useCallback(
@@ -285,9 +298,13 @@ export function useSpeechToText(
       }));
 
       try {
-        const result = (await transcribeAudio(url, (status) => {
-          setState((prev) => ({ ...prev, status }));
-        })) as TranscriptionResponse;
+        const result = (await transcribeAudio(
+          url,
+          (status) => {
+            setState((prev) => ({ ...prev, status }));
+          },
+          language
+        )) as TranscriptionResponse;
 
         // If we got a transcriptionId, update state for polling
         if (result.resultId) {
@@ -306,12 +323,12 @@ export function useSpeechToText(
           transcription: result,
           processingStartTime: null,
         }));
-        callbacks?.onTranscriptionComplete?.(result);
+        onTranscriptionComplete?.(result);
       } catch (error) {
         handleError((error as Error).message);
       }
     },
-    [callbacks, handleError]
+    [onTranscriptionComplete, handleError, language]
   );
 
   return {

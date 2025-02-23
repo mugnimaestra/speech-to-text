@@ -5,11 +5,14 @@ import { useSpeechToText } from "@/hooks/useSpeechToText";
 import { URLInput } from "./URLInput";
 import { FileDropZone } from "./FileDropZone";
 import { TranscriptionResult } from "./TranscriptionResult";
+import LanguageSelector from "../LanguageSelector";
+import { useState } from "react";
 
 export default function SpeechToText({
   onTranscriptionComplete,
   onError,
 }: SpeechToTextProps) {
+  const [selectedLanguage, setSelectedLanguage] = useState("id");
   const {
     input,
     status: transcriptionStatus,
@@ -21,53 +24,45 @@ export default function SpeechToText({
   } = useSpeechToText({
     onTranscriptionComplete,
     onError,
+    language: selectedLanguage,
   });
 
   return (
     <div className="w-full max-w-2xl mx-auto p-6 space-y-6">
-      <URLInput
-        onSubmit={handleUrl}
-        isTranscribing={
-          transcriptionStatus === "uploading" ||
-          transcriptionStatus === "processing"
-        }
-      />
+      <div className="space-y-6">
+        <LanguageSelector onLanguageChange={setSelectedLanguage} />
 
-      <FileDropZone
-        onFileSelect={handleFile}
-        onError={handleError}
-        isTranscribing={
-          transcriptionStatus === "uploading" ||
-          transcriptionStatus === "processing"
-        }
-        currentFile={input?.type === "file" ? (input.data as File) : null}
-      />
+        <URLInput
+          onSubmit={handleUrl}
+          isTranscribing={
+            transcriptionStatus === "uploading" ||
+            transcriptionStatus === "processing"
+          }
+        />
 
-      {(transcriptionStatus === "uploading" ||
-        transcriptionStatus === "processing") && (
-        <div className="mt-4 text-center">
-          <div className="flex flex-col items-center space-y-2" role="status">
-            <div
-              className="animate-spin rounded-full h-8 w-8 border-b-2 border-emerald-500"
-              aria-hidden="true"
-            ></div>
-            <p className="text-gray-600">
-              {TRANSCRIPTION_STATUS_MESSAGES[transcriptionStatus]}
-              {transcriptionStatus === "processing" && getProcessingTime()}
-            </p>
-            {(transcriptionStatus === "uploading" ||
-              transcriptionStatus === "processing") && (
-              <>
-                <p className="text-sm text-gray-500 mt-2">
-                  You can leave this page and come back later. We'll keep
-                  processing your file.
-                </p>
-                <p className="text-sm text-amber-600 font-medium">
-                  ⚠️ Don't close this tab or your transcription will be lost
-                </p>
-              </>
+        <FileDropZone
+          onFileSelect={handleFile}
+          onError={handleError}
+          isTranscribing={
+            transcriptionStatus === "uploading" ||
+            transcriptionStatus === "processing"
+          }
+          currentFile={input?.type === "file" ? (input.data as File) : null}
+        />
+      </div>
+
+      {transcriptionStatus !== "idle" && (
+        <div
+          className="mt-4 text-center text-gray-600"
+          role="status"
+          aria-live="polite"
+        >
+          <p>
+            {TRANSCRIPTION_STATUS_MESSAGES[transcriptionStatus]}
+            {transcriptionStatus === "processing" && (
+              <span className="text-sm ml-2">({getProcessingTime()})</span>
             )}
-          </div>
+          </p>
         </div>
       )}
 
@@ -76,25 +71,15 @@ export default function SpeechToText({
           text={transcription.text}
           segments={transcription.segments}
           structuredConversation={transcription.structuredConversation}
-          error={transcription.error}
           onCopy={async (format) => {
-            if (!transcription.text) return;
-
-            if (format === "raw") {
-              await navigator.clipboard.writeText(transcription.text);
-            } else {
-              // Format verbose text with speaker information
-              let verboseText = "";
-              if (transcription.structuredConversation) {
-                verboseText = transcription.structuredConversation
-                  .map((item) => `[${item.role}] ${item.text}\n`)
-                  .join("\n");
-              } else if (transcription.segments) {
-                verboseText = transcription.segments
-                  .map((segment) => `[${segment.speaker}] ${segment.text}\n`)
-                  .join("\n");
-              }
-              await navigator.clipboard.writeText(verboseText);
+            try {
+              await navigator.clipboard.writeText(
+                format === "raw"
+                  ? transcription.text
+                  : JSON.stringify(transcription, null, 2)
+              );
+            } catch (error) {
+              handleError("Failed to copy to clipboard");
             }
           }}
         />
