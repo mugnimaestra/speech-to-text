@@ -39,6 +39,7 @@ yarn install
 
 ```bash
 LEMONFOX_API_KEY=your_lemonfox_api_key_here
+NEXT_PUBLIC_ACCESS_CODE=your_access_code_here  # Access code for authentication
 ```
 
 To get your Lemonfox.ai API key:
@@ -82,9 +83,9 @@ Open [http://localhost:3000](http://localhost:3000) to view the application.
 
 ## Deployment
 
-### Render.com Deployment
+### Railway.app Deployment
 
-The application is optimized for deployment on Render.com with the following features:
+The application is optimized for deployment on Railway.app with the following features:
 
 1. **File Size Support**
    - Direct file uploads up to 100MB
@@ -93,14 +94,15 @@ The application is optimized for deployment on Render.com with the following fea
 
 2. **Deployment Steps**
    1. Push your code to GitHub/GitLab
-   2. Create an account on [Render.com](https://render.com)
-   3. Create a new Web Service
+   2. Create an account on [Railway.app](https://railway.app)
+   3. Create a new project
    4. Connect your repository
-   5. Use the following settings:
-      - Build Command: `yarn install && yarn build`
-      - Start Command: `yarn start`
-   6. Add environment variable:
+   5. Add environment variables:
       - LEMONFOX_API_KEY: (your api key)
+      - NEXT_PUBLIC_ACCESS_CODE: (your chosen access code for authentication)
+   6. Railway will automatically detect the Dockerfile and deploy your application
+
+Note: Environment variables set in Railway.app will automatically be available to your application during build and runtime. No additional Docker configuration is needed for environment variables.
 
 ## Error Handling
 
@@ -139,9 +141,10 @@ import SpeechToText from "@/components/SpeechToText";
 
 ## Environment Variables
 
-| Variable           | Description              | Required |
-| ------------------ | ------------------------ | -------- |
-| `LEMONFOX_API_KEY` | Your Lemonfox.ai API key | Yes      |
+| Variable                | Description                                          | Required |
+| ---------------------- | ---------------------------------------------------- | -------- |
+| `LEMONFOX_API_KEY`     | Your Lemonfox.ai API key                            | Yes      |
+| `NEXT_PUBLIC_ACCESS_CODE` | Access code for application authentication          | Yes      |
 
 ## API Routes
 
