@@ -47,12 +47,10 @@ export default function SpeechToText({
         transcriptionStatus === "processing") && (
         <div className="mt-4 text-center">
           <div className="flex flex-col items-center space-y-2" role="status">
-            {transcriptionStatus !== "completed" && (
-              <div
-                className="animate-spin rounded-full h-8 w-8 border-b-2 border-emerald-500"
-                aria-hidden="true"
-              ></div>
-            )}
+            <div
+              className="animate-spin rounded-full h-8 w-8 border-b-2 border-emerald-500"
+              aria-hidden="true"
+            ></div>
             <p className="text-gray-600">
               {TRANSCRIPTION_STATUS_MESSAGES[transcriptionStatus]}
               {transcriptionStatus === "processing" && getProcessingTime()}
