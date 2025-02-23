@@ -95,19 +95,49 @@ The application is optimized for deployment on Railway.app with the following fe
 2. **Deployment Steps**
    1. Push your code to GitHub/GitLab
    2. Create an account on [Railway.app](https://railway.app)
-   3. Create a new project and select "Deploy from GitHub repo"
-   4. Connect your repository
-   5. Select the "Next.js" template when prompted
-   6. Add environment variables in Railway's dashboard:
-      - LEMONFOX_API_KEY: Your Lemonfox API key (required)
-      - NEXT_PUBLIC_ACCESS_CODE: Your chosen access code for authentication (required)
-   7. Railway will automatically:
-      - Detect your Next.js application
-      - Install dependencies
-      - Build the application
-      - Deploy it with the proper configuration
+   3. Install Railway CLI:
+      ```bash
+      npm i -g @railway/cli
+      ```
+   4. Login to Railway:
+      ```bash
+      railway login
+      ```
+   5. Initialize Railway project in your local directory:
+      ```bash
+      railway init
+      ```
+      This will create a new project and link your directory to it.
+   
+   6. Add environment variables:
+      ```bash
+      railway variables --set LEMONFOX_API_KEY=your_api_key_here
+      railway variables --set NEXT_PUBLIC_ACCESS_CODE=your_access_code_here
+      ```
+   
+   7. Deploy your application:
+      ```bash
+      railway up
+      ```
+   
+   8. Open your deployed application:
+      ```bash
+      railway open
+      ```
 
-Note: Railway automatically detects and optimizes the deployment for Next.js applications. You don't need any additional Docker configuration as Railway handles the build and deployment process natively.
+Railway will automatically:
+- Detect your Next.js application
+- Install dependencies
+- Build the application
+- Deploy it with the proper configuration
+
+Note: You can manage your environment variables using these commands:
+```bash
+railway variables                # List all variables
+railway variables --unset KEY    # Remove a variable
+railway run yarn dev            # Run locally with Railway variables
+railway shell                  # Open a shell with Railway variables
+```
 
 ## Error Handling
 
