@@ -1,11 +1,11 @@
-# Use Node.js 18 as the base image
-FROM node:18-slim
+# Use Node.js 20 as the base image
+FROM node:20-slim
 
 # Set working directory
 WORKDIR /app
 
 # Install yarn
-RUN corepack enable && corepack prepare yarn@4.0.2 --activate
+RUN corepack enable && corepack prepare yarn@4.1.0 --activate
 
 # Copy package.json and yarn.lock
 COPY package.json yarn.lock ./
