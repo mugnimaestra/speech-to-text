@@ -212,22 +212,63 @@ export async function POST(request: NextRequest) {
     });
     debug.log("API call successful, processing response");
 
-    // Extract text and segments from verbose_json response
-    const { text, segments } = response.data;
-    debug.log("Extracted text and segments from response");
+    // Log the response structure in development mode
+    if (process.env.NODE_ENV === "development") {
+      debug.log("Response data structure:", Object.keys(response.data));
+    }
 
-    // Structure the conversation based on segments
-    const structuredConversation = segments.map((segment: any) => ({
-      role: segment.speaker,
-      text: segment.text,
-      timestamp: {
-        start: segment.start,
-        end: segment.end,
-      },
-    }));
-    debug.log("Structured conversation created");
+    // Handle different response formats
+    const responseData = response.data;
+    let text, segments, structuredConversation;
 
-    return NextResponse.json({ text, segments, structuredConversation });
+    // Check if we're getting a direct result or need to poll
+    if (responseData.text !== undefined) {
+      text = responseData.text;
+
+      // If segments exist, process them
+      if (Array.isArray(responseData.segments)) {
+        segments = responseData.segments;
+
+        // Structure the conversation based on segments
+        structuredConversation = segments.map((segment: any) => ({
+          role: segment.speaker || "speaker", // Use default if speaker is missing
+          text: segment.text,
+          timestamp: {
+            start: segment.start,
+            end: segment.end,
+          },
+        }));
+      } else {
+        // Create a single segment if none provided
+        segments = [
+          {
+            start: 0,
+            end: 0,
+            text: text,
+            speaker: "speaker",
+          },
+        ];
+        structuredConversation = [
+          {
+            role: "speaker",
+            text: text,
+            timestamp: { start: 0, end: 0 },
+          },
+        ];
+      }
+
+      return NextResponse.json({
+        text,
+        segments,
+        structuredConversation,
+      });
+    } else if (responseData.id || responseData.task_id) {
+      // This is an async task that we'll need to poll for
+      const resultId = responseData.id || responseData.task_id;
+      return NextResponse.json({ resultId });
+    } else {
+      throw new Error("Unexpected response format from transcription service");
+    }
   } catch (error) {
     debug.error("Transcription error:", error);
 

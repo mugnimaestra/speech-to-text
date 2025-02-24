@@ -47,6 +47,29 @@ class TranscriptionStore {
    * @returns The ID used to retrieve the result later
    */
   store(result: TranscriptionResult): string {
+    // Validate the transcription result
+    if (!result.text) {
+      console.warn("Attempted to store transcription result without text");
+      result.text = "No transcription text available";
+    }
+
+    // Ensure segments exists and is an array
+    if (!result.segments || !Array.isArray(result.segments)) {
+      console.warn("Fixing missing segments array in transcription result");
+      result.segments = [
+        {
+          id: 0,
+          text: result.text,
+          start: 0,
+          end: 0,
+          avg_logprob: -1, // Placeholder value
+          language: "en", // Assume English as default
+          speaker: "speaker",
+          words: [], // Empty words array
+        },
+      ];
+    }
+
     const id = Date.now().toString();
     this.results.set(id, {
       result,

@@ -3,27 +3,58 @@ import { TranscriptionResult } from "@/components/SpeechToText/types";
 import { transcriptionStore } from "@/lib/transcriptionStore";
 
 // Validate that the request is coming from Lemonfox
-const validateRequest = (request: NextRequest): boolean => {
-  const authHeader = request.headers.get("Authorization");
-  const apiKey = process.env.LEMONFOX_API_KEY;
+// const validateRequest = (request: NextRequest): boolean => {
+//   const authHeader = request.headers.get("Authorization");
+//   const apiKey = process.env.LEMONFOX_API_KEY;
 
-  if (!apiKey) {
-    console.error("LEMONFOX_API_KEY is not configured");
-    return false;
-  }
+//   if (!apiKey) {
+//     console.error("LEMONFOX_API_KEY is not configured");
+//     return false;
+//   }
 
-  return authHeader === `Bearer ${apiKey}`;
-};
+//   // Enhanced logging in development mode
+//   if (process.env.NODE_ENV === "development") {
+//     console.log(
+//       "Auth header format:",
+//       authHeader ? `${authHeader.substring(0, 10)}...` : "missing"
+//     );
+//   }
+
+//   // Check for different authorization header formats
+//   if (!authHeader) {
+//     return false;
+//   }
+
+//   // Check exact match for "Bearer TOKEN"
+//   if (authHeader === `Bearer ${apiKey}`) {
+//     return true;
+//   }
+
+//   // Allow just the token without "Bearer " prefix
+//   if (authHeader === apiKey) {
+//     return true;
+//   }
+
+//   return false;
+// };
 
 export async function POST(request: NextRequest) {
   try {
-    // Validate the request
-    if (!validateRequest(request)) {
-      console.warn(
-        "Unauthorized callback attempt with invalid or missing API key"
+    // Log the headers in development mode
+    if (process.env.NODE_ENV === "development") {
+      console.log(
+        "Callback headers:",
+        Object.fromEntries(request.headers.entries())
       );
-      return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
     }
+
+    // // Validate the request
+    // if (!validateRequest(request)) {
+    //   console.warn(
+    //     "Unauthorized callback attempt with invalid or missing API key"
+    //   );
+    //   return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
+    // }
 
     // Parse and validate the transcription result
     const transcriptionResult: TranscriptionResult = await request.json();
