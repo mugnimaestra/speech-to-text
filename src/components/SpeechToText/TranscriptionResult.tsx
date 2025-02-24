@@ -18,72 +18,57 @@ export function TranscriptionResult({
   onCopy,
 }: TranscriptionResultProps) {
   const [showToast, setShowToast] = useState(false);
-  const [copyFormat, setCopyFormat] = useState<"raw" | "verbose">("raw");
-
-  const handleCopy = async () => {
-    try {
-      await onCopy(copyFormat);
-      setShowToast(true);
-    } catch (error) {
-      console.error("Failed to copy text:", error);
-    }
-  };
 
   return (
-    <div className="mt-8">
-      {error ? (
-        <div className="text-rose-500">❌ {error}</div>
-      ) : (
-        <div className="space-y-4">
-          <div className="flex justify-between items-center">
-            <h3
-              className="text-lg font-medium text-emerald-700"
-              id="transcription-heading"
+    <div className="space-y-4">
+      <div className="flex justify-between items-center mb-4">
+        <h2 className="text-xl font-semibold text-white">
+          Transcription Result
+        </h2>
+        <div className="space-x-2">
+          <button
+            onClick={async () => {
+              await onCopy("raw");
+              setShowToast(true);
+            }}
+            className="px-3 py-1.5 rounded text-sm font-medium bg-indigo-600 text-white hover:bg-indigo-700 transition-colors"
+          >
+            Copy Raw Text
+          </button>
+          {segments?.length || structuredConversation?.length ? (
+            <button
+              onClick={async () => {
+                await onCopy("verbose");
+                setShowToast(true);
+              }}
+              className="px-3 py-1.5 rounded text-sm font-medium bg-indigo-600 text-white hover:bg-indigo-700 transition-colors"
             >
-              <span aria-hidden="true">📝</span> Transcription
-            </h3>
-            <div className="flex items-center gap-2">
-              <select
-                value={copyFormat}
-                onChange={(e) =>
-                  setCopyFormat(e.target.value as "raw" | "verbose")
-                }
-                className="text-sm border border-emerald-200 rounded px-2 py-1 focus:outline-none focus:ring-2 focus:ring-emerald-500"
-                aria-label="Select copy format"
-              >
-                <option value="raw">Raw Text</option>
-                <option value="verbose">Detailed (with Speakers)</option>
-              </select>
-              <button
-                onClick={handleCopy}
-                className="px-4 py-2 text-sm bg-emerald-500 text-white rounded hover:bg-emerald-600 transition-colors flex items-center gap-2 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:ring-offset-2"
-                aria-label="Copy transcription to clipboard"
-              >
-                <span aria-hidden="true">📋</span> Copy to Clipboard
-              </button>
-            </div>
-          </div>
+              Copy With Speakers
+            </button>
+          ) : null}
+        </div>
+      </div>
+
+      {error ? (
+        <div className="p-4 rounded-lg bg-[#31346e] border border-red-500">
+          <p className="text-red-400">{error}</p>
+        </div>
+      ) : (
+        <div className="relative">
           <div
-            className="p-4 bg-emerald-50 rounded-lg border border-emerald-100"
-            aria-labelledby="transcription-heading"
+            className={`p-4 rounded-lg bg-[#31346e] border border-[#4c528c] text-white overflow-auto h-80 overflow-y-auto`}
           >
             {structuredConversation ? (
               <div className="space-y-4">
                 {structuredConversation.map((item, index) => (
                   <div key={index} className="flex gap-4 items-start">
                     <div className="flex-shrink-0 w-24">
-                      <span className="inline-block px-2 py-1 bg-emerald-100 rounded text-sm font-medium text-emerald-800">
+                      <span className="inline-block px-2 py-1 bg-indigo-800 text-indigo-200 rounded text-sm font-medium">
                         {item.role}
                       </span>
                     </div>
                     <div className="flex-grow">
-                      <p className="text-gray-800">{item.text}</p>
-                      {item.timestamp && (
-                        <p className="text-xs text-gray-500 mt-1">
-                          {Math.floor(item.timestamp.start)}s -{" "}
-                          {Math.floor(item.timestamp.end)}s
-                        </p>
-                      )}
+                      <p className="text-gray-200">{item.text}</p>
                     </div>
                   </div>
                 ))}
@@ -93,13 +78,13 @@ export function TranscriptionResult({
                 {segments.map((segment, index) => (
                   <div key={index} className="flex gap-4 items-start">
                     <div className="flex-shrink-0 w-24">
-                      <span className="inline-block px-2 py-1 bg-emerald-100 rounded text-sm font-medium text-emerald-800">
+                      <span className="inline-block px-2 py-1 bg-indigo-800 text-indigo-200 rounded text-sm font-medium">
                         {segment.speaker}
                       </span>
                     </div>
                     <div className="flex-grow">
-                      <p className="text-gray-800">{segment.text}</p>
-                      <p className="text-xs text-gray-500 mt-1">
+                      <p className="text-gray-200">{segment.text}</p>
+                      <p className="text-xs text-gray-400 mt-1">
                         {Math.floor(segment.start)}s - {Math.floor(segment.end)}
                         s
                       </p>
@@ -108,7 +93,7 @@ export function TranscriptionResult({
                 ))}
               </div>
             ) : (
-              <div className="whitespace-pre-wrap">{text}</div>
+              <div className="whitespace-pre-wrap text-gray-200">{text}</div>
             )}
           </div>
         </div>

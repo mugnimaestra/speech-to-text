@@ -1,6 +1,11 @@
 import { useCallback, useMemo, useRef, useState } from "react";
 import { ALLOWED_FORMATS, FILE_LIMITS, FILE_SIZE_ERROR } from "@/lib/constants";
 
+// Helper function to convert bytes to MB
+const bytesToMB = (bytes: number): number => {
+  return Math.round((bytes / 1024 / 1024) * 10) / 10;
+};
+
 interface FileDropZoneProps {
   onFileSelect: (file: File) => void;
   onError: (message: string) => void;
@@ -112,11 +117,11 @@ export function FileDropZone({
         className={`border-2 border-dashed rounded-lg p-8 text-center cursor-pointer transition-colors
           ${
             isDragging
-              ? "border-emerald-500 bg-emerald-50"
-              : "border-gray-300 hover:border-gray-400"
+              ? "border-indigo-400 bg-[#363f6a]"
+              : "border-[#4c528c] hover:border-indigo-400"
           }
           ${isTranscribing ? "pointer-events-none opacity-50" : ""}
-          focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:ring-offset-2`}
+          focus:outline-none focus:ring-2 focus:ring-indigo-400 focus:ring-offset-2 focus:ring-offset-[#2a365e]`}
         onDrop={handleDrop}
         onDragOver={handleDragOver}
         onDragLeave={handleDragLeave}
@@ -141,10 +146,10 @@ export function FileDropZone({
         {isTranscribing ? (
           <div className="flex flex-col items-center space-y-2" role="status">
             <div
-              className="animate-spin rounded-full h-8 w-8 border-b-2 border-emerald-500"
+              className="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-400"
               aria-hidden="true"
             ></div>
-            <p className="text-gray-600">
+            <p className="text-gray-200">
               <span aria-hidden="true">🎵</span>
               Transcribing media...
             </p>
@@ -154,7 +159,7 @@ export function FileDropZone({
           </div>
         ) : (
           <div className="space-y-4">
-            <div className="text-gray-600">
+            <div className="text-gray-200">
               {currentFile ? (
                 <>
                   <p className="font-medium" id="selected-file">
@@ -178,48 +183,33 @@ export function FileDropZone({
                 </>
               ) : (
                 <>
-                  <p
-                    className="font-medium text-emerald-700"
-                    id="dropzone-instructions"
-                  >
-                    <span aria-hidden="true">📁</span> Drag and drop a file
-                    here, or click to select
-                  </p>
-                  <div
-                    className="text-sm mt-2 space-y-1"
-                    role="region"
-                    aria-label="File format requirements"
-                  >
-                    <p>
-                      <span aria-hidden="true">🎵</span> Supported audio
-                      formats:{" "}
-                      <span
-                        aria-label={`Supported audio formats: ${formatGroups.audio.join(
-                          ", "
-                        )}`}
-                      >
-                        {formatGroups.audio.join(", ").toUpperCase()}
-                      </span>
-                    </p>
-                    <p>
-                      <span aria-hidden="true">🎥</span> Supported video
-                      formats:{" "}
-                      <span
-                        aria-label={`Supported video formats: ${formatGroups.video.join(
-                          ", "
-                        )}`}
-                      >
-                        {formatGroups.video.join(", ").toUpperCase()}
-                      </span>
-                    </p>
-                    <p>
-                      <span aria-hidden="true">📁</span> Size limits: Direct
-                      upload up to {FILE_LIMITS.MAX_SIZE / 1024 / 1024}
-                      MB. For larger files up to{" "}
-                      {FILE_LIMITS.URL_MAX_SIZE / 1024 / 1024}MB, please use URL
-                      upload.
-                    </p>
+                  <div className="mb-4">
+                    <svg
+                      className="mx-auto h-12 w-12 text-indigo-400"
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                      xmlns="http://www.w3.org/2000/svg"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={1.5}
+                        d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"
+                      />
+                    </svg>
                   </div>
+                  <p className="text-lg font-medium mb-1">
+                    Drop your audio or video file here
+                  </p>
+                  <p>or click to browse</p>
+                  <p className="mt-2 text-sm text-gray-300">
+                    Supported formats: {formatGroups.audio.join(", ")},{" "}
+                    {formatGroups.video.join(", ")}
+                  </p>
+                  <p className="text-xs text-gray-300 mt-1">
+                    Max size: {bytesToMB(FILE_LIMITS.MAX_SIZE)} MB
+                  </p>
                 </>
               )}
             </div>

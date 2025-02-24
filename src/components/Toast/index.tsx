@@ -23,7 +23,7 @@ export function Toast({
       role="alert"
       aria-live="polite"
       className={`fixed bottom-4 right-4 px-6 py-3 rounded-lg shadow-lg text-white
-        ${type === "success" ? "bg-emerald-500" : "bg-rose-500"}
+        ${type === "success" ? "bg-indigo-600" : "bg-red-600"}
         transition-opacity duration-300 flex items-center gap-2`}
     >
       <span aria-hidden="true">{type === "success" ? "✅" : "❌"}</span>
