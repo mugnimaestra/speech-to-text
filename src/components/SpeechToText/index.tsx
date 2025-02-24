@@ -7,15 +7,14 @@ import { FileDropZone } from "./FileDropZone";
 import { TranscriptionResult } from "./TranscriptionResult";
 import { SpeakerConfig } from "./SpeakerConfig";
 import LanguageSelector from "../LanguageSelector";
-import { useState } from "react";
+import { useState, useCallback } from "react";
 
 export default function SpeechToText({
   onTranscriptionComplete,
   onError,
 }: SpeechToTextProps) {
-  const [selectedLanguage, setSelectedLanguage] = useState("id");
-  const [minSpeakers, setMinSpeakers] = useState(1);
-  const [maxSpeakers, setMaxSpeakers] = useState(2);
+  const [selectedLanguage, setSelectedLanguage] = useState("indonesian");
+  const [speakerConfig, setSpeakerConfig] = useState({ min: 1, max: 2 });
 
   const {
     input,
@@ -29,14 +28,38 @@ export default function SpeechToText({
     onTranscriptionComplete,
     onError,
     language: selectedLanguage,
-    minSpeakers,
-    maxSpeakers,
+    minSpeakers: speakerConfig.min,
+    maxSpeakers: speakerConfig.max,
   });
 
   const handleSpeakerConfigChange = (min: number, max: number) => {
-    setMinSpeakers(min);
-    setMaxSpeakers(max);
+    setSpeakerConfig({ min, max });
   };
+
+  const handleCopy = useCallback(
+    async (format: "raw" | "verbose") => {
+      if (!transcription) return;
+
+      try {
+        let textToCopy = transcription.text;
+        if (format === "verbose") {
+          if (transcription.structuredConversation) {
+            textToCopy = transcription.structuredConversation
+              .map((item) => `${item.role}: ${item.text}`)
+              .join("\n\n");
+          } else if (transcription.segments) {
+            textToCopy = transcription.segments
+              .map((segment) => `${segment.speaker}: ${segment.text}`)
+              .join("\n\n");
+          }
+        }
+        await navigator.clipboard.writeText(textToCopy);
+      } catch (error) {
+        handleError("Failed to copy to clipboard");
+      }
+    },
+    [transcription, handleError]
+  );
 
   return (
     <div className="w-full max-w-2xl mx-auto p-6 space-y-6">
@@ -85,17 +108,7 @@ export default function SpeechToText({
           text={transcription.text}
           segments={transcription.segments}
           structuredConversation={transcription.structuredConversation}
-          onCopy={async (format) => {
-            try {
-              await navigator.clipboard.writeText(
-                format === "raw"
-                  ? transcription.text
-                  : JSON.stringify(transcription, null, 2)
-              );
-            } catch (error) {
-              handleError("Failed to copy to clipboard");
-            }
-          }}
+          onCopy={handleCopy}
         />
       )}
     </div>

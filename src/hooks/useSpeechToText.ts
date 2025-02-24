@@ -113,7 +113,7 @@ interface UseSpeechToTextReturn
 export function useSpeechToText({
   onTranscriptionComplete,
   onError,
-  language = "id",
+  language = "indonesian",
   minSpeakers = 1,
   maxSpeakers = 2,
 }: UseSpeechToTextCallbacks = {}): UseSpeechToTextReturn {

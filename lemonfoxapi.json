@@ -14,7 +14,7 @@
       "/audio/transcriptions": {
         "post": {
           "summary": "Transcribe audio to text",
-          "description": "Convert audio file to text with optional speaker diarization and various output formats",
+          "description": "Convert audio file to text with optional speaker diarization and various output formats. Transcribe 30 minutes of audio in under one minute. More than 100 languages are supported.",
           "requestBody": {
             "required": true,
             "content": {
@@ -26,17 +26,17 @@
                     "file": {
                       "type": "string",
                       "format": "binary",
-                      "description": "Audio file to transcribe (max 100MB) or URL to audio file (max 1GB)"
+                      "description": "Audio file to transcribe (max 100MB) or URL to audio file (max 1GB). Supported formats: mp3, wav, flac, aac, opus, ogg, m4a, mp4, mpeg, mov, webm, and more."
                     },
                     "response_format": {
                       "type": "string",
                       "enum": ["json", "text", "srt", "verbose_json", "vtt"],
                       "default": "json",
-                      "description": "The format of the transcription response"
+                      "description": "The format of the transcription response. VTT and SRT are file formats that include timestamps and can be used to display subtitles in video players."
                     },
                     "speaker_labels": {
                       "type": "boolean",
-                      "description": "Enable speaker diarization"
+                      "description": "Enable speaker diarization. When using speaker diarization, you may also use min_speakers and max_speakers parameters to improve accuracy. Note: Cannot be used with OpenAI libraries."
                     },
                     "min_speakers": {
                       "type": "integer",
@@ -48,16 +48,17 @@
                     },
                     "prompt": {
                       "type": "string",
-                      "description": "Optional text prompt to guide the transcription"
+                      "description": "A text to guide the transcript's style or continue a previous audio transcript. The prompt should be in the same language as the audio. Useful for fixing words/acronyms, ensuring punctuation, or including filler words."
                     },
                     "language": {
                       "type": "string",
-                      "description": "Language of the input audio"
+                      "description": "The language of the input audio. If not provided, language is detected automatically. Supplying the input language can improve accuracy and latency.",
+                      "enum": ["english", "chinese", "german", "spanish", "russian", "korean", "french", "japanese", "portuguese", "turkish", "polish", "catalan", "dutch", "arabic", "swedish", "italian", "indonesian", "hindi", "finnish", "vietnamese", "hebrew", "ukrainian", "greek", "malay", "czech", "romanian", "danish", "hungarian", "tamil", "norwegian", "thai", "urdu", "croatian", "bulgarian", "lithuanian", "latin", "maori", "malayalam", "welsh", "slovak", "telugu", "persian", "latvian", "bengali", "serbian", "azerbaijani", "slovenian", "kannada", "estonian", "macedonian", "breton", "basque", "icelandic", "armenian", "nepali", "mongolian", "bosnian", "kazakh", "albanian", "swahili", "galician", "marathi", "punjabi", "sinhala", "khmer", "shona", "yoruba", "somali", "afrikaans", "occitan", "georgian", "belarusian", "tajik", "sindhi", "gujarati", "amharic", "yiddish", "lao", "uzbek", "faroese", "haitian creole", "pashto", "turkmen", "nynorsk", "maltese", "sanskrit", "luxembourgish", "myanmar", "tibetan", "tagalog", "malagasy", "assamese", "tatar", "hawaiian", "lingala", "hausa", "bashkir", "javanese", "sundanese", "cantonese", "burmese", "valencian", "flemish", "haitian", "letzeburgesch", "pushto", "panjabi", "moldavian", "moldovan", "sinhalese", "castilian", "mandarin"]
                     },
                     "callback_url": {
                       "type": "string",
                       "format": "uri",
-                      "description": "URL for receiving transcription results asynchronously"
+                      "description": "URL for receiving transcription results asynchronously. Useful for long audio files. The API will send a POST request with the transcript when ready. Note: Cannot be used with OpenAI libraries."
                     },
                     "translate": {
                       "type": "boolean",
@@ -69,7 +70,7 @@
                         "type": "string",
                         "enum": ["word"]
                       },
-                      "description": "Enable word-level timestamps"
+                      "description": "Enable word-level timestamps by adding 'word' to the array. By default only timestamps for each segment are added. Must use response_format=verbose_json to access timestamps."
                     }
                   }
                 }
