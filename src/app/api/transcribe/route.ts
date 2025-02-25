@@ -15,17 +15,19 @@ const API_URL = "https://api.lemonfox.ai/v1/audio/transcriptions";
 export const runtime = "nodejs";
 export const maxDuration = 3600; // 1 hour in seconds
 
-// Debug logger that only logs in development
+// Debug logger that logs in all environments
 const debug = {
   log: (...args: any[]) => {
-    if (process.env.NODE_ENV === "development") {
-      console.log(...args);
-    }
+    // Always log, regardless of environment
+    console.log("[TRANSCRIBE]", ...args);
   },
   error: (...args: any[]) => {
-    if (process.env.NODE_ENV === "development") {
-      console.error(...args);
-    }
+    // Always log errors, regardless of environment
+    console.error("[TRANSCRIBE ERROR]", ...args);
+  },
+  // Add a new method for detailed response logging that works in all environments
+  response: (...args: any[]) => {
+    console.log("[TRANSCRIBE RESPONSE]", ...args);
   },
 };
 
@@ -36,6 +38,9 @@ async function fileToBuffer(file: File): Promise<Buffer> {
 }
 
 export async function POST(request: NextRequest) {
+  // Initialize fileOrUrl at a higher scope so it's accessible in error handlers
+  let fileOrUrl: File | string | null = null;
+
   try {
     debug.log("=== Starting file upload process ===");
 
@@ -51,18 +56,39 @@ export async function POST(request: NextRequest) {
     }
 
     const formData = await request.formData();
-    const fileOrUrl = formData.get("file");
+    fileOrUrl = formData.get("file");
     const prompt = formData.get("prompt");
-    debug.log("File or URL type:", typeof fileOrUrl);
-    debug.log("Is File instance:", fileOrUrl instanceof File);
+    debug.log("Request details:", {
+      input_type: typeof fileOrUrl,
+      is_file: fileOrUrl instanceof File,
+      timestamp: new Date().toISOString(),
+    });
+
     if (fileOrUrl instanceof File) {
       debug.log("File details:", {
         name: fileOrUrl.name,
         type: fileOrUrl.type,
-        size: fileOrUrl.size,
+        size: `${(fileOrUrl.size / (1024 * 1024)).toFixed(2)} MB`,
+        timestamp: new Date().toISOString(),
+      });
+    } else if (typeof fileOrUrl === "string") {
+      debug.log("URL details:", {
+        url_length: fileOrUrl.length,
+        url_preview:
+          fileOrUrl.substring(0, 50) + (fileOrUrl.length > 50 ? "..." : ""),
+        timestamp: new Date().toISOString(),
       });
     }
-    debug.log("Prompt received:", prompt);
+
+    if (prompt) {
+      debug.log("Prompt provided:", {
+        length:
+          typeof prompt === "string" ? prompt.length : prompt.toString().length,
+        preview:
+          prompt.toString().substring(0, 50) +
+          (prompt.toString().length > 50 ? "..." : ""),
+      });
+    }
 
     if (!fileOrUrl) {
       return NextResponse.json(
@@ -76,12 +102,31 @@ export async function POST(request: NextRequest) {
     debug.log("Created new FormData for Lemonfox");
 
     if (typeof fileOrUrl === "string") {
-      debug.log("Processing URL upload");
+      debug.log("TRANSCRIPTION: Processing URL upload");
       try {
         new URL(fileOrUrl); // Validate URL format
+        debug.log("TRANSCRIPTION: URL validation successful", {
+          url: fileOrUrl,
+          timestamp: new Date().toISOString(),
+        });
         lemonfoxFormData.append("file", fileOrUrl);
-        debug.log("URL appended to FormData");
-      } catch {
+        debug.log(
+          "TRANSCRIPTION: URL added to form data with parameter name 'file'"
+        );
+
+        // Log complete form data for URL submission
+        debug.log("TRANSCRIPTION: Complete URL submission details", {
+          url: fileOrUrl,
+          headers: lemonfoxFormData.getHeaders(),
+          timestamp: new Date().toISOString(),
+        });
+      } catch (error) {
+        debug.error("TRANSCRIPTION ERROR: URL validation failed", {
+          attempted_url: fileOrUrl,
+          error_message:
+            error instanceof Error ? error.message : "Unknown error",
+          timestamp: new Date().toISOString(),
+        });
         return NextResponse.json(
           { message: "Invalid URL provided" },
           { status: 400 }
@@ -199,6 +244,17 @@ export async function POST(request: NextRequest) {
     }
 
     debug.log("Preparing to make API call to Lemonfox");
+    // Add extra logging for URL uploads
+    if (typeof fileOrUrl === "string") {
+      debug.log("URL TRANSCRIPTION: Making API request:", {
+        url_length: fileOrUrl.length,
+        api_endpoint: API_URL,
+        url_preview:
+          fileOrUrl.substring(0, 100) + (fileOrUrl.length > 100 ? "..." : ""),
+        timestamp: new Date().toISOString(),
+      });
+    }
+
     // Call Lemonfox API with the form-data
     const response = await axios.post(API_URL, lemonfoxFormData, {
       headers: {
@@ -210,69 +266,90 @@ export async function POST(request: NextRequest) {
       timeoutErrorMessage:
         "Transcription request timed out. Please try again with a shorter audio file or use the URL method for large files.",
     });
-    debug.log("API call successful, processing response");
+    debug.log("API call successful, status:", response.status);
+    debug.log("Processing response");
 
-    // Log the response structure in development mode
-    if (process.env.NODE_ENV === "development") {
-      // More detailed logging of response structure
-      debug.log("Response data structure:", Object.keys(response.data));
-      debug.log("Response data type:", typeof response.data);
-      debug.log("Response headers:", response.headers);
+    // Log response information in all environments (not just development)
+    debug.response("Response data type:", typeof response.data);
 
-      // Log a sample of the response data (first 1000 chars if string)
-      if (typeof response.data === "string") {
-        debug.log(
-          "Response data (first 1000 chars):",
-          response.data.substring(0, 1000)
-        );
+    // Additional URL request logging
+    if (typeof fileOrUrl === "string") {
+      debug.response("URL-based transcription response received", {
+        url_length: fileOrUrl.length,
+        url_preview:
+          fileOrUrl.substring(0, 50) + (fileOrUrl.length > 50 ? "..." : ""),
+        response_status: response.status,
+        response_type: typeof response.data,
+        timestamp: new Date().toISOString(),
+      });
+    }
 
-        // Try to parse JSON if response is a string
-        try {
-          const parsedData = JSON.parse(response.data);
-          debug.log("Parsed response data keys:", Object.keys(parsedData));
-          // Update responseData to use the parsed version
-          response.data = parsedData;
-        } catch (e) {
-          debug.log("Response is not JSON parsable string");
-        }
-      } else {
-        // Log detailed structure recursively up to 2 levels deep
-        const safeStringify = (obj: any, depth = 0): string => {
-          if (depth > 2) return "[Object]"; // Limit recursion depth
-          if (typeof obj !== "object" || obj === null) return String(obj);
+    // Always log response data sample for debugging regardless of environment
+    if (typeof response.data === "string") {
+      debug.response(
+        "String response data preview:",
+        response.data.substring(0, 300) +
+          (response.data.length > 300 ? "..." : "")
+      );
 
-          if (Array.isArray(obj)) {
-            if (obj.length === 0) return "[]";
-            return `[Array(${obj.length}): ${obj
-              .slice(0, 3)
-              .map((item) => safeStringify(item, depth + 1))
-              .join(", ")}${obj.length > 3 ? "..." : ""}]`;
-          }
-
-          const keys = Object.keys(obj);
-          if (keys.length === 0) return "{}";
-          const entries: string[] = keys
-            .slice(0, 5)
-            .map((key) => `${key}: ${safeStringify(obj[key], depth + 1)}`);
-          return `{${entries.join(", ")}${keys.length > 5 ? "..." : ""}}`;
-        };
-
-        debug.log("Response data sample:", safeStringify(response.data));
+      // Try to parse JSON if response is a string
+      try {
+        const parsedData = JSON.parse(response.data);
+        debug.response("Parsed response data keys:", Object.keys(parsedData));
+        // Update responseData to use the parsed version
+        response.data = parsedData;
+      } catch (e) {
+        debug.response("Response is not JSON parsable string");
       }
+    } else if (typeof response.data === "object" && response.data !== null) {
+      // Log object structure in a readable way
+      const keys = Object.keys(response.data);
+      debug.response("Object response data keys:", keys);
+
+      // Log a preview of each main key value
+      keys.forEach((key) => {
+        const value = response.data[key];
+        const valuePreview =
+          typeof value === "string"
+            ? value.length > 100
+              ? value.substring(0, 100) + "..."
+              : value
+            : Array.isArray(value)
+            ? `Array with ${value.length} items`
+            : typeof value;
+
+        debug.response(`Key "${key}":`, valuePreview);
+      });
     }
 
     // Handle different response formats
     const responseData = response.data;
     let text, segments, structuredConversation;
 
+    debug.log("TRANSCRIPTION: Processing response format", {
+      response_type: typeof responseData,
+      has_text: responseData.text !== undefined,
+      has_id:
+        responseData.id !== undefined || responseData.task_id !== undefined,
+      is_string: typeof responseData === "string",
+      timestamp: new Date().toISOString(),
+    });
+
     // Check if we have a text property anywhere in the response
     if (responseData.text !== undefined) {
       // Direct result format
       text = responseData.text;
+      debug.log("TRANSCRIPTION: Direct text result found", {
+        text_length: text.length,
+        text_preview: text.substring(0, 100) + (text.length > 100 ? "..." : ""),
+      });
 
       // If segments exist, process them
       if (Array.isArray(responseData.segments)) {
         segments = responseData.segments;
+        debug.log("TRANSCRIPTION: Segments found", {
+          segment_count: segments.length,
+        });
 
         // Structure the conversation based on segments
         structuredConversation = segments.map((segment: any) => ({
@@ -284,6 +361,7 @@ export async function POST(request: NextRequest) {
           },
         }));
       } else {
+        debug.log("TRANSCRIPTION: No segments found, creating default segment");
         // Create a single segment if none provided
         segments = [
           {
@@ -302,6 +380,9 @@ export async function POST(request: NextRequest) {
         ];
       }
 
+      debug.log(
+        "TRANSCRIPTION: Returning successful response with text and segments"
+      );
       return NextResponse.json({
         text,
         segments,
@@ -310,10 +391,20 @@ export async function POST(request: NextRequest) {
     } else if (responseData.id || responseData.task_id) {
       // This is an async task that we'll need to poll for
       const resultId = responseData.id || responseData.task_id;
+      debug.log("TRANSCRIPTION: Async task detected", {
+        result_id: resultId,
+        timestamp: new Date().toISOString(),
+      });
       return NextResponse.json({ resultId });
     } else if (typeof responseData === "string") {
       // Try to handle plain text response
       text = responseData;
+      debug.log("TRANSCRIPTION: Plain text response detected", {
+        text_length: text.length,
+        text_preview: text.substring(0, 100) + (text.length > 100 ? "..." : ""),
+        timestamp: new Date().toISOString(),
+      });
+
       segments = [
         {
           id: 0,
@@ -334,6 +425,7 @@ export async function POST(request: NextRequest) {
         },
       ];
 
+      debug.log("TRANSCRIPTION: Returning successful response from plain text");
       return NextResponse.json({
         text,
         segments,
@@ -341,20 +433,42 @@ export async function POST(request: NextRequest) {
       });
     } else {
       // Log entire response for debugging
-      debug.error(
-        "Unexpected response format:",
-        JSON.stringify(response.data, null, 2)
-      );
+      debug.error("TRANSCRIPTION ERROR: Unexpected response format", {
+        response_data: JSON.stringify(response.data, null, 2),
+        response_type: typeof response.data,
+        timestamp: new Date().toISOString(),
+      });
       throw new Error("Unexpected response format from transcription service");
     }
   } catch (error) {
-    debug.error("Transcription error:", error);
+    debug.error("TRANSCRIPTION ERROR: Transcription process failed", {
+      error_name: error instanceof Error ? error.name : "Unknown error type",
+      error_message: error instanceof Error ? error.message : String(error),
+      timestamp: new Date().toISOString(),
+    });
 
     if (axios.isAxiosError(error)) {
       // Log the full error response for debugging
-      debug.error("API Error Response:", error.response?.data);
-      debug.error("API Error Status:", error.response?.status);
-      debug.error("API Error Headers:", error.response?.headers);
+      debug.error("TRANSCRIPTION ERROR: Axios request failed", {
+        status: error.response?.status || "No status",
+        status_text: error.response?.statusText || "No status text",
+        response_data: JSON.stringify(error.response?.data || "No data"),
+        request_url: error.config?.url || "No URL",
+        request_method: error.config?.method || "No method",
+        timestamp: new Date().toISOString(),
+      });
+
+      // Additional logging for URL-based request failures
+      if (typeof fileOrUrl === "string") {
+        debug.error("TRANSCRIPTION ERROR: URL-based transcription failed", {
+          url_length: fileOrUrl.length,
+          url_preview:
+            fileOrUrl.substring(0, 100) + (fileOrUrl.length > 100 ? "..." : ""),
+          error_status: error.response?.status,
+          error_data: JSON.stringify(error.response?.data || "No data"),
+          timestamp: new Date().toISOString(),
+        });
+      }
 
       const statusCode = error.response?.status || 500;
       let message = "Failed to transcribe audio/video";
@@ -367,29 +481,62 @@ export async function POST(request: NextRequest) {
       // Enhanced error status code logging and handling
       switch (statusCode) {
         case 400:
-          debug.error("Bad Request: Invalid parameters or malformed request");
+          debug.error("TRANSCRIPTION ERROR: Bad Request", {
+            error_details: "Invalid parameters or malformed request",
+            input_type: typeof fileOrUrl === "string" ? "URL" : "File",
+            timestamp: new Date().toISOString(),
+          });
           message = "Invalid request parameters";
           break;
         case 401:
         case 403:
-          debug.error("Authentication Error: Invalid or missing API key");
+          debug.error("TRANSCRIPTION ERROR: Authentication Failed", {
+            error_details: "Invalid or missing API key",
+            status_code: statusCode,
+            timestamp: new Date().toISOString(),
+          });
           message = "Service authentication error";
           break;
         case 413:
-          debug.error("File Size Error: File exceeds maximum size limit");
+          debug.error("TRANSCRIPTION ERROR: File Size Error", {
+            error_details: "File exceeds maximum size limit",
+            file_size: fileOrUrl instanceof File ? fileOrUrl.size : "N/A (URL)",
+            max_size: FILE_LIMITS.MAX_SIZE,
+            timestamp: new Date().toISOString(),
+          });
           message = FILE_SIZE_ERROR.OVER_LIMIT;
           break;
         case 415:
-          debug.error("Unsupported Media Type: Invalid file format");
+          debug.error("TRANSCRIPTION ERROR: Unsupported Media Type", {
+            error_details: "Invalid file format",
+            file_type: fileOrUrl instanceof File ? fileOrUrl.type : "N/A (URL)",
+            timestamp: new Date().toISOString(),
+          });
           message = FILE_SIZE_ERROR.INVALID_FORMAT("unknown format");
           break;
         case 429:
-          debug.error("Rate Limit Error: Too many requests");
+          debug.error("TRANSCRIPTION ERROR: Rate Limit Exceeded", {
+            error_details: "Too many requests",
+            timestamp: new Date().toISOString(),
+          });
           message = "Rate limit exceeded. Please try again later";
           break;
         default:
-          debug.error(`Unexpected Error Status Code: ${statusCode}`);
+          debug.error(
+            `TRANSCRIPTION ERROR: Unexpected Status Code ${statusCode}`,
+            {
+              status_code: statusCode,
+              response_data: JSON.stringify(error.response?.data || "No data"),
+              timestamp: new Date().toISOString(),
+            }
+          );
       }
+
+      debug.error("TRANSCRIPTION ERROR: Returning error response to client", {
+        status_code: statusCode,
+        message: message,
+        timestamp: new Date().toISOString(),
+      });
 
       return NextResponse.json(
         {
@@ -402,7 +549,14 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    debug.error("Non-Axios error occurred:", error);
+    debug.error("TRANSCRIPTION ERROR: Non-Axios error", {
+      error_type:
+        error instanceof Error ? error.constructor.name : typeof error,
+      error_message: error instanceof Error ? error.message : String(error),
+      error_stack: error instanceof Error ? error.stack : "No stack trace",
+      timestamp: new Date().toISOString(),
+    });
+
     return NextResponse.json(
       {
         message: "Internal server error",
