@@ -22,7 +22,7 @@ export function TranscriptionResult({
   return (
     <div className="space-y-4">
       <div className="flex justify-between items-center mb-4">
-        <h2 className="text-xl font-semibold text-white">
+        <h2 className="text-xl font-semibold text-gray-100">
           Transcription Result
         </h2>
         <div className="space-x-2">
@@ -31,7 +31,7 @@ export function TranscriptionResult({
               await onCopy("raw");
               setShowToast(true);
             }}
-            className="px-3 py-1.5 rounded text-sm font-medium bg-indigo-600 text-white hover:bg-indigo-700 transition-colors"
+            className="px-3 py-1.5 rounded text-sm font-medium bg-gray-700 text-white hover:bg-gray-600 transition-colors"
           >
             Copy Raw Text
           </button>
@@ -41,7 +41,7 @@ export function TranscriptionResult({
                 await onCopy("verbose");
                 setShowToast(true);
               }}
-              className="px-3 py-1.5 rounded text-sm font-medium bg-indigo-600 text-white hover:bg-indigo-700 transition-colors"
+              className="px-3 py-1.5 rounded text-sm font-medium bg-gray-700 text-white hover:bg-gray-600 transition-colors"
             >
               Copy With Speakers
             </button>
@@ -50,25 +50,25 @@ export function TranscriptionResult({
       </div>
 
       {error ? (
-        <div className="p-4 rounded-lg bg-[#31346e] border border-red-500">
+        <div className="p-4 rounded-lg bg-[#1A1F2E] border border-red-800">
           <p className="text-red-400">{error}</p>
         </div>
       ) : (
         <div className="relative">
           <div
-            className={`p-4 rounded-lg bg-[#31346e] border border-[#4c528c] text-white overflow-auto h-80 overflow-y-auto`}
+            className={`p-4 rounded-lg bg-[#1A1F2E] border border-[#2A3045] text-gray-100 overflow-auto h-80 overflow-y-auto`}
           >
             {structuredConversation ? (
               <div className="space-y-4">
                 {structuredConversation.map((item, index) => (
                   <div key={index} className="flex gap-4 items-start">
                     <div className="flex-shrink-0 w-24">
-                      <span className="inline-block px-2 py-1 bg-indigo-800 text-indigo-200 rounded text-sm font-medium">
+                      <span className="inline-block px-2 py-1 bg-gray-800 text-gray-300 rounded text-sm font-medium">
                         {item.role}
                       </span>
                     </div>
                     <div className="flex-grow">
-                      <p className="text-gray-200">{item.text}</p>
+                      <p className="text-gray-300">{item.text}</p>
                     </div>
                   </div>
                 ))}
@@ -78,12 +78,12 @@ export function TranscriptionResult({
                 {segments.map((segment, index) => (
                   <div key={index} className="flex gap-4 items-start">
                     <div className="flex-shrink-0 w-24">
-                      <span className="inline-block px-2 py-1 bg-indigo-800 text-indigo-200 rounded text-sm font-medium">
+                      <span className="inline-block px-2 py-1 bg-gray-800 text-gray-300 rounded text-sm font-medium">
                         {segment.speaker}
                       </span>
                     </div>
                     <div className="flex-grow">
-                      <p className="text-gray-200">{segment.text}</p>
+                      <p className="text-gray-300">{segment.text}</p>
                       <p className="text-xs text-gray-400 mt-1">
                         {Math.floor(segment.start)}s - {Math.floor(segment.end)}
                         s
@@ -93,7 +93,7 @@ export function TranscriptionResult({
                 ))}
               </div>
             ) : (
-              <div className="whitespace-pre-wrap text-gray-200">{text}</div>
+              <div className="whitespace-pre-wrap text-gray-300">{text}</div>
             )}
           </div>
         </div>

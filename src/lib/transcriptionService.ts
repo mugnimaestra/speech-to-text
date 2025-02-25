@@ -19,25 +19,48 @@ export async function transcribeAudio(
 ): Promise<TranscriptionResult> {
   // Start the transcription
   onProgress?.("uploading");
-  const response = await fetch("/api/transcribe", {
-    method: "POST",
-    body: formData,
-  });
 
-  if (!response.ok) {
-    const error = await response.json();
-    throw new Error(error.message || "Failed to transcribe audio");
+  try {
+    const response = await fetch("/api/transcribe", {
+      method: "POST",
+      body: formData,
+    });
+
+    if (!response.ok) {
+      let errorMessage = "Failed to transcribe audio";
+      try {
+        const error = await response.json();
+        console.error("Transcription API error:", error);
+        errorMessage = error.message || errorMessage;
+
+        // Additional logging for detailed errors
+        if (error.details) {
+          console.error("Error details:", error.details);
+        }
+      } catch (parseError) {
+        console.error("Failed to parse error response:", parseError);
+      }
+      throw new Error(errorMessage);
+    }
+
+    const result = await response.json();
+    console.log(
+      "API response received:",
+      JSON.stringify(result).substring(0, 200) + "..."
+    );
+
+    // If we got a resultId, it means we need to poll for results
+    if (result.resultId) {
+      console.log("Polling for results with ID:", result.resultId);
+      onProgress?.("processing");
+      return await pollForResults(result.resultId);
+    }
+
+    return result;
+  } catch (error) {
+    console.error("Transcription request failed:", error);
+    throw error;
   }
-
-  const result = await response.json();
-
-  // If we got a resultId, it means we need to poll for results
-  if (result.resultId) {
-    onProgress?.("processing");
-    return await pollForResults(result.resultId);
-  }
-
-  return result;
 }
 
 async function pollForResults(resultId: string): Promise<TranscriptionResult> {
@@ -45,22 +68,45 @@ async function pollForResults(resultId: string): Promise<TranscriptionResult> {
   let interval: number = POLLING_CONFIG.INITIAL_INTERVAL;
   let attempts = 0;
 
+  console.log(`Starting polling for result ID: ${resultId}`);
+
   while (attempts < POLLING_CONFIG.MAX_ATTEMPTS) {
     try {
+      console.log(
+        `Polling attempt ${attempts + 1}/${POLLING_CONFIG.MAX_ATTEMPTS}`
+      );
       const response = await fetch(`/api/transcription-status/${resultId}`);
 
       if (response.ok) {
-        return await response.json();
+        const result = await response.json();
+        console.log("Polling successful, received result");
+        return result;
       }
 
       if (response.status !== 404) {
         // If we get any error other than 404 (not found), throw it
-        const error = await response.json();
-        throw new Error(error.message);
+        let error;
+        try {
+          error = await response.json();
+        } catch (e) {
+          console.error("Error parsing polling response:", e);
+          error = {
+            message: `Status ${response.status}: ${response.statusText}`,
+          };
+        }
+        console.error(`Polling error (status ${response.status}):`, error);
+        throw new Error(error.message || "Failed to retrieve transcription");
       }
 
+      // If we're here, we got a 404 - which means result is not ready yet
+      console.log(
+        `Result not ready yet (404), waiting ${interval}ms before next attempt`
+      );
+
       // Check if we've exceeded the maximum duration
-      if (Date.now() - startTime > POLLING_CONFIG.MAX_DURATION) {
+      const elapsedTime = Date.now() - startTime;
+      if (elapsedTime > POLLING_CONFIG.MAX_DURATION) {
+        console.error(`Polling timed out after ${elapsedTime}ms`);
         throw new Error(
           "Transcription timed out after 1 hour. Please try again or use a shorter audio file."
         );
@@ -75,6 +121,7 @@ async function pollForResults(resultId: string): Promise<TranscriptionResult> {
       await new Promise((resolve) => setTimeout(resolve, interval));
       attempts++;
     } catch (error) {
+      console.error(`Polling attempt ${attempts + 1} failed:`, error);
       if (attempts === POLLING_CONFIG.MAX_ATTEMPTS - 1) {
         throw error;
       }
@@ -82,6 +129,9 @@ async function pollForResults(resultId: string): Promise<TranscriptionResult> {
     }
   }
 
+  console.error(
+    `Reached maximum polling attempts (${POLLING_CONFIG.MAX_ATTEMPTS})`
+  );
   throw new Error(
     "Transcription timed out after 1 hour. Please try again or use a shorter audio file."
   );

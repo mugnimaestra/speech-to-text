@@ -117,11 +117,11 @@ export function FileDropZone({
         className={`border-2 border-dashed rounded-lg p-8 text-center cursor-pointer transition-colors
           ${
             isDragging
-              ? "border-indigo-400 bg-[#363f6a]"
-              : "border-[#4c528c] hover:border-indigo-400"
+              ? "border-gray-500 bg-[#1E2231]"
+              : "border-[#2A3045] hover:border-gray-600"
           }
           ${isTranscribing ? "pointer-events-none opacity-50" : ""}
-          focus:outline-none focus:ring-2 focus:ring-indigo-400 focus:ring-offset-2 focus:ring-offset-[#2a365e]`}
+          focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-offset-2 focus:ring-offset-[#151A28]`}
         onDrop={handleDrop}
         onDragOver={handleDragOver}
         onDragLeave={handleDragLeave}
@@ -146,10 +146,10 @@ export function FileDropZone({
         {isTranscribing ? (
           <div className="flex flex-col items-center space-y-2" role="status">
             <div
-              className="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-400"
+              className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-400"
               aria-hidden="true"
             ></div>
-            <p className="text-gray-200">
+            <p className="text-gray-300">
               <span aria-hidden="true">🎵</span>
               Transcribing media...
             </p>
@@ -159,7 +159,7 @@ export function FileDropZone({
           </div>
         ) : (
           <div className="space-y-4">
-            <div className="text-gray-200">
+            <div className="text-gray-300">
               {currentFile ? (
                 <>
                   <p className="font-medium" id="selected-file">
@@ -185,7 +185,7 @@ export function FileDropZone({
                 <>
                   <div className="mb-4">
                     <svg
-                      className="mx-auto h-12 w-12 text-indigo-400"
+                      className="mx-auto h-12 w-12 text-gray-500"
                       fill="none"
                       stroke="currentColor"
                       viewBox="0 0 24 24"
@@ -203,11 +203,11 @@ export function FileDropZone({
                     Drop your audio or video file here
                   </p>
                   <p>or click to browse</p>
-                  <p className="mt-2 text-sm text-gray-300">
+                  <p className="mt-2 text-sm text-gray-400">
                     Supported formats: {formatGroups.audio.join(", ")},{" "}
                     {formatGroups.video.join(", ")}
                   </p>
-                  <p className="text-xs text-gray-300 mt-1">
+                  <p className="text-xs text-gray-400 mt-1">
                     Max size: {bytesToMB(FILE_LIMITS.MAX_SIZE)} MB
                   </p>
                 </>

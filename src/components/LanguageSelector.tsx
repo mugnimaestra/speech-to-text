@@ -137,7 +137,7 @@ export default function LanguageSelector({
     <div className="flex flex-col gap-2">
       <label
         htmlFor="language-select"
-        className="text-sm font-medium text-gray-200"
+        className="text-sm font-medium text-gray-300"
       >
         Select Language
       </label>
@@ -145,7 +145,7 @@ export default function LanguageSelector({
         id="language-select"
         value={selectedLanguage}
         onChange={handleLanguageChange}
-        className="block w-full rounded-md border-[#4c528c] bg-[#31346e] text-white shadow-sm focus:border-indigo-400 focus:ring-indigo-400 sm:text-sm"
+        className="block w-full rounded-md border-[#2A3045] bg-[#1A1F2E] text-gray-200 shadow-sm focus:border-gray-500 focus:ring-gray-500 sm:text-sm"
       >
         {languages.map((language) => (
           <option key={language.code} value={language.code}>

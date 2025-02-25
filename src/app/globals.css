@@ -4,9 +4,9 @@
 
 @layer base {
   :root {
-    --foreground-rgb: 255, 255, 255;
-    --background-start-rgb: 33, 44, 86;
-    --background-end-rgb: 25, 33, 64;
+    --foreground-rgb: 235, 235, 245;
+    --background-start-rgb: 16, 18, 28;
+    --background-end-rgb: 10, 12, 20;
   }
 }
 
@@ -31,15 +31,15 @@
 }
 
 .whitespace-pre-wrap::-webkit-scrollbar-track {
-  background: #2d375e;
+  background: #1a1e2a;
   border-radius: 4px;
 }
 
 .whitespace-pre-wrap::-webkit-scrollbar-thumb {
-  background: #5a6794;
+  background: #2a3045;
   border-radius: 4px;
 }
 
 .whitespace-pre-wrap::-webkit-scrollbar-thumb:hover {
-  background: #7f89ae;
+  background: #3d4256;
 }

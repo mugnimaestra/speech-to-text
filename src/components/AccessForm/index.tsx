@@ -20,13 +20,13 @@ export default function AccessForm() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-b from-[#212C56] to-[#191D40]">
-      <div className="max-w-md w-full space-y-8 p-8 bg-[#2a365e] rounded-lg shadow-lg">
+    <div className="min-h-screen flex items-center justify-center bg-gradient-to-b from-[#10121C] to-[#0A0C14]">
+      <div className="max-w-md w-full space-y-8 p-8 bg-[#151A28] rounded-lg shadow-lg">
         <div>
-          <h2 className="mt-6 text-center text-3xl font-extrabold text-white">
+          <h2 className="mt-6 text-center text-3xl font-extrabold text-gray-100">
             Protected Content
           </h2>
-          <p className="mt-2 text-center text-sm text-gray-300">
+          <p className="mt-2 text-center text-sm text-gray-400">
             Please enter the access code to continue
           </p>
         </div>
@@ -42,7 +42,7 @@ export default function AccessForm() {
               required
               value={code}
               onChange={(e) => setCode(e.target.value)}
-              className="appearance-none rounded-md relative block w-full px-3 py-2 border border-[#4c528c] bg-[#31346e] placeholder-gray-400 text-white focus:outline-none focus:ring-indigo-400 focus:border-indigo-400 focus:z-10 sm:text-sm"
+              className="appearance-none rounded-md relative block w-full px-3 py-2 border border-[#2A3045] bg-[#1A1F2E] placeholder-gray-500 text-gray-200 focus:outline-none focus:ring-gray-500 focus:border-gray-500 focus:z-10 sm:text-sm"
               placeholder="Enter access code"
             />
           </div>
@@ -50,7 +50,7 @@ export default function AccessForm() {
           <div>
             <button
               type="submit"
-              className="group relative w-full flex justify-center py-2 px-4 border border-transparent text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-400 focus:ring-offset-[#2a365e]"
+              className="group relative w-full flex justify-center py-2 px-4 border border-transparent text-sm font-medium rounded-md text-white bg-gray-700 hover:bg-gray-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500 focus:ring-offset-[#151A28]"
             >
               Submit
             </button>

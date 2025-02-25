@@ -19,8 +19,8 @@ export default function AccessGate({ children }: AccessGateProps) {
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-[#212C56]">
-        <div className="text-gray-200">Loading...</div>
+      <div className="min-h-screen flex items-center justify-center bg-[#10121C]">
+        <div className="text-gray-300">Loading...</div>
       </div>
     );
   }

@@ -62,7 +62,7 @@ export default function SpeechToText({
   );
 
   return (
-    <div className="w-full max-w-2xl mx-auto p-6 space-y-6 bg-[#2a365e] rounded-xl shadow-lg">
+    <div className="w-full max-w-2xl mx-auto p-6 space-y-6 bg-[#151A28] rounded-xl shadow-lg">
       <div className="space-y-6">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           <LanguageSelector onLanguageChange={setSelectedLanguage} />
@@ -90,7 +90,7 @@ export default function SpeechToText({
 
       {transcriptionStatus !== "idle" && (
         <div
-          className="mt-4 text-center text-gray-200"
+          className="mt-4 text-center text-gray-300"
           role="status"
           aria-live="polite"
         >

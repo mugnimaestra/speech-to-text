@@ -214,15 +214,60 @@ export async function POST(request: NextRequest) {
 
     // Log the response structure in development mode
     if (process.env.NODE_ENV === "development") {
+      // More detailed logging of response structure
       debug.log("Response data structure:", Object.keys(response.data));
+      debug.log("Response data type:", typeof response.data);
+      debug.log("Response headers:", response.headers);
+
+      // Log a sample of the response data (first 1000 chars if string)
+      if (typeof response.data === "string") {
+        debug.log(
+          "Response data (first 1000 chars):",
+          response.data.substring(0, 1000)
+        );
+
+        // Try to parse JSON if response is a string
+        try {
+          const parsedData = JSON.parse(response.data);
+          debug.log("Parsed response data keys:", Object.keys(parsedData));
+          // Update responseData to use the parsed version
+          response.data = parsedData;
+        } catch (e) {
+          debug.log("Response is not JSON parsable string");
+        }
+      } else {
+        // Log detailed structure recursively up to 2 levels deep
+        const safeStringify = (obj: any, depth = 0): string => {
+          if (depth > 2) return "[Object]"; // Limit recursion depth
+          if (typeof obj !== "object" || obj === null) return String(obj);
+
+          if (Array.isArray(obj)) {
+            if (obj.length === 0) return "[]";
+            return `[Array(${obj.length}): ${obj
+              .slice(0, 3)
+              .map((item) => safeStringify(item, depth + 1))
+              .join(", ")}${obj.length > 3 ? "..." : ""}]`;
+          }
+
+          const keys = Object.keys(obj);
+          if (keys.length === 0) return "{}";
+          const entries: string[] = keys
+            .slice(0, 5)
+            .map((key) => `${key}: ${safeStringify(obj[key], depth + 1)}`);
+          return `{${entries.join(", ")}${keys.length > 5 ? "..." : ""}}`;
+        };
+
+        debug.log("Response data sample:", safeStringify(response.data));
+      }
     }
 
     // Handle different response formats
     const responseData = response.data;
     let text, segments, structuredConversation;
 
-    // Check if we're getting a direct result or need to poll
+    // Check if we have a text property anywhere in the response
     if (responseData.text !== undefined) {
+      // Direct result format
       text = responseData.text;
 
       // If segments exist, process them
@@ -266,7 +311,40 @@ export async function POST(request: NextRequest) {
       // This is an async task that we'll need to poll for
       const resultId = responseData.id || responseData.task_id;
       return NextResponse.json({ resultId });
+    } else if (typeof responseData === "string") {
+      // Try to handle plain text response
+      text = responseData;
+      segments = [
+        {
+          id: 0,
+          text: responseData,
+          start: 0,
+          end: 0,
+          avg_logprob: -1,
+          language: "en",
+          speaker: "speaker",
+          words: [],
+        },
+      ];
+      structuredConversation = [
+        {
+          role: "speaker",
+          text: responseData,
+          timestamp: { start: 0, end: 0 },
+        },
+      ];
+
+      return NextResponse.json({
+        text,
+        segments,
+        structuredConversation,
+      });
     } else {
+      // Log entire response for debugging
+      debug.error(
+        "Unexpected response format:",
+        JSON.stringify(response.data, null, 2)
+      );
       throw new Error("Unexpected response format from transcription service");
     }
   } catch (error) {

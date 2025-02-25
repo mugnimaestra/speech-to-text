@@ -3,40 +3,54 @@ import { TranscriptionResult } from "@/components/SpeechToText/types";
 import { transcriptionStore } from "@/lib/transcriptionStore";
 
 // Validate that the request is coming from Lemonfox
-// const validateRequest = (request: NextRequest): boolean => {
-//   const authHeader = request.headers.get("Authorization");
-//   const apiKey = process.env.LEMONFOX_API_KEY;
+const validateRequest = (request: NextRequest): boolean => {
+  const authHeader = request.headers.get("Authorization");
+  const apiKey = process.env.LEMONFOX_API_KEY;
 
-//   if (!apiKey) {
-//     console.error("LEMONFOX_API_KEY is not configured");
-//     return false;
-//   }
+  if (!apiKey) {
+    console.error("LEMONFOX_API_KEY is not configured");
+    return false;
+  }
 
-//   // Enhanced logging in development mode
-//   if (process.env.NODE_ENV === "development") {
-//     console.log(
-//       "Auth header format:",
-//       authHeader ? `${authHeader.substring(0, 10)}...` : "missing"
-//     );
-//   }
+  // Enhanced logging in development mode
+  if (process.env.NODE_ENV === "development") {
+    console.log(
+      "Auth header format:",
+      authHeader ? `${authHeader.substring(0, 10)}...` : "missing"
+    );
+  }
 
-//   // Check for different authorization header formats
-//   if (!authHeader) {
-//     return false;
-//   }
+  // In development mode, skip validation to help with testing
+  if (process.env.NODE_ENV === "development") {
+    console.log("Skipping auth validation in development mode");
+    return true;
+  }
 
-//   // Check exact match for "Bearer TOKEN"
-//   if (authHeader === `Bearer ${apiKey}`) {
-//     return true;
-//   }
+  // Check for different authorization header formats
+  if (!authHeader) {
+    return false;
+  }
 
-//   // Allow just the token without "Bearer " prefix
-//   if (authHeader === apiKey) {
-//     return true;
-//   }
+  // Check exact match for "Bearer TOKEN"
+  if (authHeader === `Bearer ${apiKey}`) {
+    return true;
+  }
 
-//   return false;
-// };
+  // Allow just the token without "Bearer " prefix
+  if (authHeader === apiKey) {
+    return true;
+  }
+
+  // Check for Bearer with token (case insensitive)
+  if (authHeader.toLowerCase().startsWith("bearer ")) {
+    const token = authHeader.substring(7).trim();
+    if (token === apiKey) {
+      return true;
+    }
+  }
+
+  return false;
+};
 
 export async function POST(request: NextRequest) {
   try {
@@ -48,43 +62,88 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // // Validate the request
-    // if (!validateRequest(request)) {
-    //   console.warn(
-    //     "Unauthorized callback attempt with invalid or missing API key"
-    //   );
-    //   return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
-    // }
-
-    // Parse and validate the transcription result
-    const transcriptionResult: TranscriptionResult = await request.json();
-
-    // Basic validation of required fields
-    if (
-      !transcriptionResult.text ||
-      !Array.isArray(transcriptionResult.segments)
-    ) {
-      console.error(
-        "Invalid transcription result format:",
-        transcriptionResult
+    // Validate the request - but use our improved version
+    if (!validateRequest(request)) {
+      console.warn(
+        "Unauthorized callback attempt with invalid or missing API key"
       );
-      return NextResponse.json(
-        { message: "Invalid transcription result format" },
-        { status: 400 }
-      );
+      return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
     }
 
-    // Store the result and get an ID
-    const resultId = transcriptionStore.store(transcriptionResult);
+    // Log the raw body for debugging
+    let requestBody = "";
+    try {
+      requestBody = await request.text();
+      console.log(
+        "Request body:",
+        requestBody.substring(0, 500) + (requestBody.length > 500 ? "..." : "")
+      );
 
-    // Development logging
-    if (process.env.NODE_ENV === "development") {
-      console.log("Received transcription callback for resultId:", resultId);
-      console.log("Text length:", transcriptionResult.text.length);
-      console.log("Number of segments:", transcriptionResult.segments.length);
+      // Handle potential non-JSON response
+      let transcriptionResult: TranscriptionResult;
+      try {
+        transcriptionResult = JSON.parse(requestBody);
+      } catch (e) {
+        console.error("Failed to parse callback request as JSON", e);
+        // If parsing fails, create a simple transcription result
+        transcriptionResult = {
+          text: requestBody,
+          segments: [
+            {
+              id: 0,
+              text: requestBody,
+              start: 0,
+              end: 0,
+              avg_logprob: -1,
+              language: "en",
+              speaker: "speaker",
+              words: [],
+            },
+          ],
+        };
+      }
+
+      // Continue with validation logic
+      if (!transcriptionResult.text) {
+        console.warn(
+          "Transcription result missing text property, using empty string"
+        );
+        transcriptionResult.text = "";
+      }
+
+      if (!Array.isArray(transcriptionResult.segments)) {
+        console.warn(
+          "Transcription result missing segments array, creating default"
+        );
+        transcriptionResult.segments = [
+          {
+            id: 0,
+            text: transcriptionResult.text || "",
+            start: 0,
+            end: 0,
+            avg_logprob: -1,
+            language: "en",
+            speaker: "speaker",
+            words: [],
+          },
+        ];
+      }
+
+      // Store the result and get an ID
+      const resultId = transcriptionStore.store(transcriptionResult);
+
+      // Development logging
+      if (process.env.NODE_ENV === "development") {
+        console.log("Received transcription callback for resultId:", resultId);
+        console.log("Text length:", transcriptionResult.text.length);
+        console.log("Number of segments:", transcriptionResult.segments.length);
+      }
+
+      return NextResponse.json({ success: true, resultId });
+    } catch (error) {
+      console.error("Error processing request body:", error);
+      throw error;
     }
-
-    return NextResponse.json({ success: true, resultId });
   } catch (error) {
     console.error("Error handling transcription callback:", error);
     return NextResponse.json(
