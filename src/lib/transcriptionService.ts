@@ -1,4 +1,5 @@
 import { TranscriptionResult } from "@/components/SpeechToText/types";
+import logger, { logWithContext } from "./logger";
 
 export type TranscriptionProgressCallback = (
   status: "uploading" | "processing"
@@ -17,69 +18,95 @@ export async function transcribeAudio(
   formData: FormData,
   onProgress?: TranscriptionProgressCallback
 ): Promise<TranscriptionResult> {
+  const requestId = Math.random().toString(36).substring(7);
+  
   // Start the transcription
   onProgress?.("uploading");
 
+  logWithContext('info', 'Starting audio transcription', {
+    requestId,
+    hasFile: formData.has('file'),
+    hasPrompt: formData.has('prompt'),
+  });
+
   try {
+    logWithContext('debug', 'Initiating API request', { requestId });
+    
     const response = await fetch("/api/transcribe", {
       method: "POST",
       body: formData,
     });
 
     if (!response.ok) {
-      let errorMessage = "Failed to transcribe audio";
-      try {
-        const error = await response.json();
-        console.error("Transcription API error:", error);
-        errorMessage = error.message || errorMessage;
-
-        // Additional logging for detailed errors
-        if (error.details) {
-          console.error("Error details:", error.details);
-        }
-      } catch (parseError) {
-        console.error("Failed to parse error response:", parseError);
-      }
-      throw new Error(errorMessage);
+      const error = await response.json();
+      logWithContext('error', 'Transcription API error', {
+        requestId,
+        status: response.status,
+        error: error.message,
+      });
+      throw new Error(error.message || "Failed to transcribe audio");
     }
 
     const result = await response.json();
-    console.log(
-      "API response received:",
-      JSON.stringify(result).substring(0, 200) + "..."
-    );
-
+    
     // If we got a resultId, it means we need to poll for results
     if (result.resultId) {
-      console.log("Polling for results with ID:", result.resultId);
+      logWithContext('info', 'Received task ID, starting polling', {
+        requestId,
+        resultId: result.resultId,
+      });
       onProgress?.("processing");
-      return await pollForResults(result.resultId);
+      return await pollForResults(result.resultId, requestId);
     }
+
+    logWithContext('info', 'Transcription completed successfully', {
+      requestId,
+      textLength: result.text?.length,
+      segmentsCount: result.segments?.length,
+    });
 
     return result;
   } catch (error) {
-    console.error("Transcription request failed:", error);
+    logWithContext('error', 'Transcription failed', {
+      requestId,
+      error: error instanceof Error ? error.message : 'Unknown error',
+    });
     throw error;
   }
 }
 
-async function pollForResults(resultId: string): Promise<TranscriptionResult> {
+async function pollForResults(resultId: string, requestId: string): Promise<TranscriptionResult> {
   const startTime = Date.now();
   let interval: number = POLLING_CONFIG.INITIAL_INTERVAL;
   let attempts = 0;
 
-  console.log(`Starting polling for result ID: ${resultId}`);
+  logWithContext('debug', 'Starting polling process', {
+    requestId,
+    resultId,
+    initialInterval: interval,
+    maxAttempts: POLLING_CONFIG.MAX_ATTEMPTS,
+  });
 
   while (attempts < POLLING_CONFIG.MAX_ATTEMPTS) {
     try {
-      console.log(
-        `Polling attempt ${attempts + 1}/${POLLING_CONFIG.MAX_ATTEMPTS}`
-      );
+      logWithContext('debug', 'Polling attempt', {
+        requestId,
+        resultId,
+        attempt: attempts + 1,
+        totalAttempts: POLLING_CONFIG.MAX_ATTEMPTS,
+        interval,
+      });
+
       const response = await fetch(`/api/transcription-status/${resultId}`);
 
       if (response.ok) {
         const result = await response.json();
-        console.log("Polling successful, received result");
+        logWithContext('info', 'Polling completed successfully', {
+          requestId,
+          resultId,
+          attempts,
+          duration: Date.now() - startTime,
+        });
         return result;
       }
 
@@ -89,24 +116,28 @@ async function pollForResults(resultId: string): Promise<TranscriptionResult> {
         try {
           error = await response.json();
         } catch (e) {
-          console.error("Error parsing polling response:", e);
-          error = {
-            message: `Status ${response.status}: ${response.statusText}`,
-          };
+          error = { message: `Status ${response.status}: ${response.statusText}` };
         }
-        console.error(`Polling error (status ${response.status}):`, error);
+        
+        logWithContext('error', 'Polling error', {
+          requestId,
+          resultId,
+          status: response.status,
+          error: error.message,
+        });
+        
         throw new Error(error.message || "Failed to retrieve transcription");
       }
-
-      // If we're here, we got a 404 - which means result is not ready yet
-      console.log(
-        `Result not ready yet (404), waiting ${interval}ms before next attempt`
-      );
 
       // Check if we've exceeded the maximum duration
       const elapsedTime = Date.now() - startTime;
       if (elapsedTime > POLLING_CONFIG.MAX_DURATION) {
-        console.error(`Polling timed out after ${elapsedTime}ms`);
+        logWithContext('error', 'Polling timeout', {
+          requestId,
+          resultId,
+          elapsedTime,
+          maxDuration: POLLING_CONFIG.MAX_DURATION,
+        });
         throw new Error(
           "Transcription timed out after 1 hour. Please try again or use a shorter audio file."
         );
@@ -121,7 +152,13 @@ async function pollForResults(resultId: string): Promise<TranscriptionResult> {
       await new Promise((resolve) => setTimeout(resolve, interval));
       attempts++;
     } catch (error) {
-      console.error(`Polling attempt ${attempts + 1} failed:`, error);
+      logWithContext('error', 'Polling attempt failed', {
+        requestId,
+        resultId,
+        attempt: attempts + 1,
+        error: error instanceof Error ? error.message : 'Unknown error',
+      });
+      
       if (attempts === POLLING_CONFIG.MAX_ATTEMPTS - 1) {
         throw error;
       }
@@ -129,9 +166,13 @@ async function pollForResults(resultId: string): Promise<TranscriptionResult> {
     }
   }
 
-  console.error(
-    `Reached maximum polling attempts (${POLLING_CONFIG.MAX_ATTEMPTS})`
-  );
+  logWithContext('error', 'Maximum polling attempts reached', {
+    requestId,
+    resultId,
+    attempts: POLLING_CONFIG.MAX_ATTEMPTS,
+    duration: Date.now() - startTime,
+  });
+
   throw new Error(
     "Transcription timed out after 1 hour. Please try again or use a shorter audio file."
   );
