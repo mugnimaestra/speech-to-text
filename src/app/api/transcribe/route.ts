@@ -7,7 +7,7 @@ import {
   FILE_SIZE_ERROR,
   AllowedFormat,
 } from "@/lib/constants";
-import logger, { logWithContext } from "@/lib/logger";
+import { logWithContext } from "@/lib/logger";
 
 const API_URL = "https://api.lemonfox.ai/v1/audio/transcriptions";
 
@@ -16,17 +16,19 @@ export const runtime = "nodejs";
 export const maxDuration = 3600; // 1 hour in seconds
 
 export async function POST(request: NextRequest) {
-  const requestId = request.headers.get("x-request-id") || Math.random().toString(36).substring(7);
+  const requestId =
+    request.headers.get("x-request-id") ||
+    Math.random().toString(36).substring(7);
   let fileOrUrl: File | string | null = null;
 
   try {
     // Check content length for direct file uploads
     const contentLength = request.headers.get("content-length");
     if (contentLength && parseInt(contentLength) > FILE_LIMITS.MAX_SIZE) {
-      logWithContext('warn', 'File size exceeds limit', {
+      logWithContext("warn", "File size exceeds limit", {
         requestId,
         contentLength: parseInt(contentLength),
-        maxSize: FILE_LIMITS.MAX_SIZE
+        maxSize: FILE_LIMITS.MAX_SIZE,
       });
       return NextResponse.json(
         { message: FILE_SIZE_ERROR.OVER_LIMIT },
@@ -38,7 +40,7 @@ export async function POST(request: NextRequest) {
     fileOrUrl = formData.get("file");
     const prompt = formData.get("prompt");
 
-    logWithContext('debug', 'Request received', {
+    logWithContext("debug", "Request received", {
       requestId,
       inputType: typeof fileOrUrl,
       isFile: fileOrUrl instanceof File,
@@ -46,22 +48,23 @@ export async function POST(request: NextRequest) {
     });
 
     if (fileOrUrl instanceof File) {
-      logWithContext('debug', 'Processing file details', {
+      logWithContext("debug", "Processing file details", {
         requestId,
         name: fileOrUrl.name,
         type: fileOrUrl.type,
         size: `${(fileOrUrl.size / (1024 * 1024)).toFixed(2)} MB`,
       });
     } else if (typeof fileOrUrl === "string") {
-      logWithContext('debug', 'Processing URL details', {
+      logWithContext("debug", "Processing URL details", {
         requestId,
         urlLength: fileOrUrl.length,
-        urlPreview: fileOrUrl.substring(0, 50) + (fileOrUrl.length > 50 ? "..." : ""),
+        urlPreview:
+          fileOrUrl.substring(0, 50) + (fileOrUrl.length > 50 ? "..." : ""),
       });
     }
 
     if (!fileOrUrl) {
-      logWithContext('warn', 'No file or URL provided', { requestId });
+      logWithContext("warn", "No file or URL provided", { requestId });
       return NextResponse.json(
         { message: "No file or URL provided" },
         { status: 400 }
@@ -74,9 +77,15 @@ export async function POST(request: NextRequest) {
       try {
         new URL(fileOrUrl); // Validate URL format
         lemonfoxFormData.append("file", fileOrUrl);
-        logWithContext('debug', 'Processing URL input', { requestId, url: fileOrUrl });
+        logWithContext("debug", "Processing URL input", {
+          requestId,
+          url: fileOrUrl,
+        });
       } catch (error) {
-        logWithContext('warn', 'Invalid URL provided', { requestId, url: fileOrUrl });
+        logWithContext("warn", "Invalid URL provided", {
+          requestId,
+          url: fileOrUrl,
+        });
         return NextResponse.json(
           { message: "Invalid URL provided" },
           { status: 400 }
@@ -85,10 +94,10 @@ export async function POST(request: NextRequest) {
     } else if (fileOrUrl instanceof File) {
       // Validate file format
       if (!ALLOWED_FORMATS.includes(fileOrUrl.type as AllowedFormat)) {
-        logWithContext('warn', 'Invalid file format', {
+        logWithContext("warn", "Invalid file format", {
           requestId,
           fileType: fileOrUrl.type,
-          allowedFormats: ALLOWED_FORMATS
+          allowedFormats: ALLOWED_FORMATS,
         });
         return NextResponse.json(
           { message: FILE_SIZE_ERROR.INVALID_FORMAT(fileOrUrl.type) },
@@ -98,10 +107,10 @@ export async function POST(request: NextRequest) {
 
       // Validate file size
       if (fileOrUrl.size > FILE_LIMITS.MAX_SIZE) {
-        logWithContext('warn', 'File size exceeds limit', {
+        logWithContext("warn", "File size exceeds limit", {
           requestId,
           fileSize: fileOrUrl.size,
-          maxSize: FILE_LIMITS.MAX_SIZE
+          maxSize: FILE_LIMITS.MAX_SIZE,
         });
         return NextResponse.json(
           { message: FILE_SIZE_ERROR.OVER_LIMIT },
@@ -112,17 +121,17 @@ export async function POST(request: NextRequest) {
       const buffer = await fileOrUrl.arrayBuffer();
       const fileBlob = new Blob([buffer], { type: fileOrUrl.type });
       lemonfoxFormData.append("file", fileBlob, fileOrUrl.name);
-      
-      logWithContext('debug', 'Processing file input', {
+
+      logWithContext("debug", "Processing file input", {
         requestId,
         fileName: fileOrUrl.name,
         fileType: fileOrUrl.type,
-        fileSize: fileOrUrl.size
+        fileSize: fileOrUrl.size,
       });
     } else {
-      logWithContext('warn', 'Invalid file input type', { 
-        requestId, 
-        inputType: typeof fileOrUrl 
+      logWithContext("warn", "Invalid file input type", {
+        requestId,
+        inputType: typeof fileOrUrl,
       });
       return NextResponse.json(
         { message: "Invalid file input" },
@@ -135,13 +144,15 @@ export async function POST(request: NextRequest) {
     lemonfoxFormData.append("speaker_labels", "true");
     if (prompt) {
       lemonfoxFormData.append("prompt", prompt);
-      logWithContext('debug', 'Added prompt to request', { requestId });
+      logWithContext("debug", "Added prompt to request", { requestId });
     }
 
     // Validate API key exists
     const apiKey = process.env.LEMONFOX_API_KEY;
     if (!apiKey) {
-      logWithContext('error', 'Missing API key configuration', { requestId });
+      logWithContext("error", "Missing API key configuration", {
+        requestId,
+      });
       return NextResponse.json(
         { message: "Service configuration error" },
         { status: 500 }
@@ -149,9 +160,9 @@ export async function POST(request: NextRequest) {
     }
 
     // Call Lemonfox API
-    logWithContext('info', 'Calling Lemonfox API', { requestId });
+    logWithContext("info", "Calling Lemonfox API", { requestId });
     const startTime = Date.now();
-    
+
     const response = await axios.post(API_URL, lemonfoxFormData, {
       headers: {
         Authorization: `Bearer ${apiKey}`,
@@ -162,10 +173,10 @@ export async function POST(request: NextRequest) {
     });
 
     const duration = Date.now() - startTime;
-    logWithContext('info', 'Lemonfox API response received', {
+    logWithContext("info", "Lemonfox API response received", {
       requestId,
       duration,
-      status: response.status
+      status: response.status,
     });
 
     // Extract text and segments from verbose_json response
@@ -181,11 +192,11 @@ export async function POST(request: NextRequest) {
       },
     }));
 
-    logWithContext('info', 'Transcription completed successfully', {
+    logWithContext("info", "Transcription completed successfully", {
       requestId,
       textLength: text.length,
       segmentsCount: segments.length,
-      duration
+      duration,
     });
 
     return NextResponse.json({ text, segments, structuredConversation });
@@ -193,8 +204,8 @@ export async function POST(request: NextRequest) {
     if (axios.isAxiosError(error)) {
       const statusCode = error.response?.status || 500;
       const errorMessage = error.response?.data?.message || error.message;
-      
-      logWithContext('error', 'Lemonfox API error', {
+
+      logWithContext("error", "Lemonfox API error", {
         requestId,
         statusCode,
         errorMessage,
@@ -212,7 +223,9 @@ export async function POST(request: NextRequest) {
           message = FILE_SIZE_ERROR.OVER_LIMIT;
           break;
         case 415:
-          message = FILE_SIZE_ERROR.INVALID_FORMAT(fileOrUrl instanceof File ? fileOrUrl.type : 'unknown');
+          message = FILE_SIZE_ERROR.INVALID_FORMAT(
+            fileOrUrl instanceof File ? fileOrUrl.type : "unknown"
+          );
           break;
         case 429:
           message = "Rate limit exceeded. Please try again later";
@@ -225,9 +238,9 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    logWithContext('error', 'Unexpected error during transcription', {
+    logWithContext("error", "Unexpected error during transcription", {
       requestId,
-      error: error instanceof Error ? error.message : 'Unknown error',
+      error: error instanceof Error ? error.message : "Unknown error",
       errorType: error instanceof Error ? error.constructor.name : typeof error,
     });
 

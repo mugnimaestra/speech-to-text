@@ -1,8 +1,10 @@
-import winston from 'winston';
+// Check if we're running on the server or client
+const isServer = typeof window === "undefined";
 
-const { combine, timestamp, printf, colorize, json } = winston.format;
+// Log levels
+export type LogLevel = "error" | "warn" | "info" | "http" | "debug";
 
-// Custom log levels
+// Define levels for internal use
 const levels = {
   error: 0,
   warn: 1,
@@ -11,60 +13,111 @@ const levels = {
   debug: 4,
 };
 
-// Log level based on environment
-const level = () => {
-  const env = process.env.NODE_ENV || 'development';
-  return env === 'development' ? 'debug' : 'info';
+// Universal logger interface that works in both browser and server
+const createUniversalLogger = () => {
+  // Get appropriate log level based on environment
+  const getLogLevel = (): LogLevel => {
+    const env = process.env.NODE_ENV || "development";
+    return env === "development" ? "debug" : "info";
+  };
+
+  const currentLevel = getLogLevel();
+  const currentLevelValue = levels[currentLevel];
+
+  // Check if a log level should be output based on current level
+  const shouldLog = (level: LogLevel): boolean => {
+    return levels[level] <= currentLevelValue;
+  };
+
+  // Format metadata object to string
+  const formatMetadata = (
+    metadata: Record<string, any> | undefined
+  ): string => {
+    if (!metadata || Object.keys(metadata).length === 0) return "";
+    try {
+      return JSON.stringify(metadata, null, 2);
+    } catch (e) {
+      return "[Circular or complex metadata]";
+    }
+  };
+
+  // Get timestamp in YYYY-MM-DD HH:mm:ss format
+  const getTimestamp = (): string => {
+    const now = new Date();
+    return now.toISOString().replace("T", " ").substring(0, 19);
+  };
+
+  // Create the actual logger implementation
+  return {
+    log: (level: LogLevel, message: string, metadata?: Record<string, any>) => {
+      if (!shouldLog(level)) return;
+
+      const timestamp = getTimestamp();
+      const metaStr = formatMetadata(metadata);
+      const logMessage = `${timestamp} [${level}]: ${message} ${metaStr}`;
+
+      // Use appropriate console method based on level
+      switch (level) {
+        case "error":
+          console.error(logMessage);
+          break;
+        case "warn":
+          console.warn(logMessage);
+          break;
+        case "info":
+          console.info(logMessage);
+          break;
+        case "http":
+        case "debug":
+          console.log(logMessage);
+          break;
+        default:
+          console.log(logMessage);
+      }
+    },
+    error: (message: string, metadata?: Record<string, any>) => {
+      if (!shouldLog("error")) return;
+      const timestamp = getTimestamp();
+      const metaStr = formatMetadata(metadata);
+      console.error(`${timestamp} [error]: ${message} ${metaStr}`);
+    },
+    warn: (message: string, metadata?: Record<string, any>) => {
+      if (!shouldLog("warn")) return;
+      const timestamp = getTimestamp();
+      const metaStr = formatMetadata(metadata);
+      console.warn(`${timestamp} [warn]: ${message} ${metaStr}`);
+    },
+    info: (message: string, metadata?: Record<string, any>) => {
+      if (!shouldLog("info")) return;
+      const timestamp = getTimestamp();
+      const metaStr = formatMetadata(metadata);
+      console.info(`${timestamp} [info]: ${message} ${metaStr}`);
+    },
+    http: (message: string, metadata?: Record<string, any>) => {
+      if (!shouldLog("http")) return;
+      const timestamp = getTimestamp();
+      const metaStr = formatMetadata(metadata);
+      console.log(`${timestamp} [http]: ${message} ${metaStr}`);
+    },
+    debug: (message: string, metadata?: Record<string, any>) => {
+      if (!shouldLog("debug")) return;
+      const timestamp = getTimestamp();
+      const metaStr = formatMetadata(metadata);
+      console.log(`${timestamp} [debug]: ${message} ${metaStr}`);
+    },
+  };
 };
 
-// Custom format for development
-const devFormat = printf(({ level, message, timestamp, ...metadata }) => {
-  const metaStr = Object.keys(metadata).length ? JSON.stringify(metadata, null, 2) : '';
-  return `${timestamp} [${level}]: ${message} ${metaStr}`;
-});
-
-// Create logger instance
-const logger = winston.createLogger({
-  level: level(),
-  levels,
-  format: combine(
-    timestamp({ format: 'YYYY-MM-DD HH:mm:ss' }),
-    process.env.NODE_ENV === 'development'
-      ? combine(colorize(), devFormat)
-      : json()
-  ),
-  transports: [
-    // Always log to console
-    new winston.transports.Console(),
-    
-    // Production file logging
-    ...(process.env.NODE_ENV === 'production'
-      ? [
-          // Error logs
-          new winston.transports.File({
-            filename: 'logs/error.log',
-            level: 'error',
-            maxsize: 5242880, // 5MB
-            maxFiles: 5,
-          }),
-          // Combined logs
-          new winston.transports.File({
-            filename: 'logs/combined.log',
-            maxsize: 5242880, // 5MB
-            maxFiles: 5,
-          }),
-        ]
-      : []),
-  ],
-});
+// Create and export the universal logger
+const universalLogger = createUniversalLogger();
 
 // Helper function to add request context
 export const logWithContext = (
-  level: keyof typeof levels,
+  level: LogLevel,
   message: string,
   context?: Record<string, any>
 ) => {
-  logger.log(level, message, context);
+  universalLogger.log(level, message, context);
 };
 
-export default logger;
+export default universalLogger;

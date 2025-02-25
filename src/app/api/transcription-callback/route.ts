@@ -1,28 +1,36 @@
 import { NextRequest, NextResponse } from "next/server";
 import { TranscriptionResult } from "@/components/SpeechToText/types";
 import { transcriptionStore } from "@/lib/transcriptionStore";
+import { logWithContext } from "@/lib/logger";
 
 // Validate that the request is coming from Lemonfox
 const validateRequest = (request: NextRequest): boolean => {
+  const requestId =
+    request.headers.get("x-request-id") ||
+    Math.random().toString(36).substring(7);
   const authHeader = request.headers.get("Authorization");
   const apiKey = process.env.LEMONFOX_API_KEY;
 
   if (!apiKey) {
-    console.error("LEMONFOX_API_KEY is not configured");
+    logWithContext("error", "LEMONFOX_API_KEY is not configured", {
+      requestId,
+    });
     return false;
   }
 
   // Enhanced logging in development mode
   if (process.env.NODE_ENV === "development") {
-    console.log(
-      "Auth header format:",
-      authHeader ? `${authHeader.substring(0, 10)}...` : "missing"
-    );
+    logWithContext("debug", "Auth header format:", {
+      requestId,
+      authHeader: authHeader ? `${authHeader.substring(0, 10)}...` : "missing",
+    });
   }
 
   // In development mode, skip validation to help with testing
   if (process.env.NODE_ENV === "development") {
-    console.log("Skipping auth validation in development mode");
+    logWithContext("debug", "Skipping auth validation in development mode", {
+      requestId,
+    });
     return true;
   }
 
@@ -53,19 +61,25 @@ const validateRequest = (request: NextRequest): boolean => {
 };
 
 export async function POST(request: NextRequest) {
+  const requestId =
+    request.headers.get("x-request-id") ||
+    Math.random().toString(36).substring(7);
+
   try {
     // Log the headers in development mode
     if (process.env.NODE_ENV === "development") {
-      console.log(
-        "Callback headers:",
-        Object.fromEntries(request.headers.entries())
-      );
+      logWithContext("debug", "Callback headers:", {
+        requestId,
+        headers: Object.fromEntries(request.headers.entries()),
+      });
     }
 
     // Validate the request - but use our improved version
     if (!validateRequest(request)) {
-      console.warn(
-        "Unauthorized callback attempt with invalid or missing API key"
+      logWithContext(
+        "warn",
+        "Unauthorized callback attempt with invalid or missing API key",
+        { requestId }
       );
       return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
     }
@@ -74,17 +88,22 @@ export async function POST(request: NextRequest) {
     let requestBody = "";
     try {
       requestBody = await request.text();
-      console.log(
-        "Request body:",
-        requestBody.substring(0, 500) + (requestBody.length > 500 ? "..." : "")
-      );
+      logWithContext("debug", "Request body:", {
+        requestId,
+        body:
+          requestBody.substring(0, 500) +
+          (requestBody.length > 500 ? "..." : ""),
+      });
 
       // Handle potential non-JSON response
       let transcriptionResult: TranscriptionResult;
       try {
         transcriptionResult = JSON.parse(requestBody);
       } catch (e) {
-        console.error("Failed to parse callback request as JSON", e);
+        logWithContext("error", "Failed to parse callback request as JSON", {
+          requestId,
+          error: e,
+        });
         // If parsing fails, create a simple transcription result
         transcriptionResult = {
           text: requestBody,
@@ -105,15 +124,19 @@ export async function POST(request: NextRequest) {
 
       // Continue with validation logic
       if (!transcriptionResult.text) {
-        console.warn(
-          "Transcription result missing text property, using empty string"
+        logWithContext(
+          "warn",
+          "Transcription result missing text property, using empty string",
+          { requestId }
         );
         transcriptionResult.text = "";
       }
 
       if (!Array.isArray(transcriptionResult.segments)) {
-        console.warn(
-          "Transcription result missing segments array, creating default"
+        logWithContext(
+          "warn",
+          "Transcription result missing segments array, creating default",
+          { requestId }
         );
         transcriptionResult.segments = [
           {
@@ -134,18 +157,27 @@ export async function POST(request: NextRequest) {
 
       // Development logging
       if (process.env.NODE_ENV === "development") {
-        console.log("Received transcription callback for resultId:", resultId);
-        console.log("Text length:", transcriptionResult.text.length);
-        console.log("Number of segments:", transcriptionResult.segments.length);
+        logWithContext("info", "Received transcription callback", {
+          requestId,
+          resultId,
+          textLength: transcriptionResult.text.length,
+          segmentsCount: transcriptionResult.segments.length,
+        });
       }
 
       return NextResponse.json({ success: true, resultId });
     } catch (error) {
-      console.error("Error processing request body:", error);
+      logWithContext("error", "Error processing request body", {
+        requestId,
+        error,
+      });
       throw error;
     }
   } catch (error) {
-    console.error("Error handling transcription callback:", error);
+    logWithContext("error", "Error handling transcription callback", {
+      requestId,
+      error,
+    });
     return NextResponse.json(
       { message: "Internal server error", error: String(error) },
       { status: 500 }

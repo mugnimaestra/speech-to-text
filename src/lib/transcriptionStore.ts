@@ -1,4 +1,5 @@
 import { TranscriptionResult } from "@/components/SpeechToText/types";
+import { logWithContext } from "@/lib/logger";
 
 interface StoredTranscription {
   result: TranscriptionResult;
@@ -49,13 +50,19 @@ class TranscriptionStore {
   store(result: TranscriptionResult): string {
     // Validate the transcription result
     if (!result.text) {
-      console.warn("Attempted to store transcription result without text");
+      logWithContext(
+        "warn",
+        "Attempted to store transcription result without text"
+      );
       result.text = "No transcription text available";
     }
 
     // Ensure segments exists and is an array
     if (!result.segments || !Array.isArray(result.segments)) {
-      console.warn("Fixing missing segments array in transcription result");
+      logWithContext(
+        "warn",
+        "Fixing missing segments array in transcription result"
+      );
       result.segments = [
         {
           id: 0,
