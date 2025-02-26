@@ -1,6 +1,13 @@
 "use client";
 
 import { useState } from "react";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 
 // Complete list of supported languages from Lemonfox API
 const languages = [
@@ -127,10 +134,9 @@ export default function LanguageSelector({
 }: LanguageSelectorProps) {
   const [selectedLanguage, setSelectedLanguage] = useState("indonesian");
 
-  const handleLanguageChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
-    const newLanguage = e.target.value;
-    setSelectedLanguage(newLanguage);
-    onLanguageChange(newLanguage);
+  const handleLanguageChange = (value: string) => {
+    setSelectedLanguage(value);
+    onLanguageChange(value);
   };
 
   return (
@@ -141,18 +147,21 @@ export default function LanguageSelector({
       >
         Select Language
       </label>
-      <select
-        id="language-select"
-        value={selectedLanguage}
-        onChange={handleLanguageChange}
-        className="block w-full rounded-md border-[#2A3045] bg-[#1A1F2E] text-gray-200 shadow-sm focus:border-gray-500 focus:ring-gray-500 sm:text-sm"
-      >
-        {languages.map((language) => (
-          <option key={language.code} value={language.code}>
-            {language.name}
-          </option>
-        ))}
-      </select>
+      <Select value={selectedLanguage} onValueChange={handleLanguageChange}>
+        <SelectTrigger
+          id="language-select"
+          className="w-full border-[#2A3045] bg-[#1A1F2E] text-gray-200"
+        >
+          <SelectValue placeholder="Select a language" />
+        </SelectTrigger>
+        <SelectContent className="max-h-[300px]">
+          {languages.map((language) => (
+            <SelectItem key={language.code} value={language.code}>
+              {language.name}
+            </SelectItem>
+          ))}
+        </SelectContent>
+      </Select>
     </div>
   );
 }

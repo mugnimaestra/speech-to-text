@@ -75,11 +75,40 @@ export async function POST(request: NextRequest) {
 
     if (typeof fileOrUrl === "string") {
       try {
-        new URL(fileOrUrl); // Validate URL format
+        const url = new URL(fileOrUrl); // Validate URL format
+
+        // Basic URL validation - check for common audio/video domains or file extensions
+        const isLikelyMediaUrl =
+          /\.(mp3|wav|mp4|m4a|flac|ogg|mpeg|mov|webm)$/i.test(url.pathname) ||
+          [
+            "youtube.com",
+            "youtu.be",
+            "vimeo.com",
+            "soundcloud.com",
+            "dropbox.com",
+            "drive.google.com",
+          ].some((domain) => url.hostname.includes(domain));
+
+        if (!isLikelyMediaUrl) {
+          logWithContext("warn", "URL may not point to a valid media file", {
+            requestId,
+            url: fileOrUrl,
+          });
+          // We'll still proceed, but log a warning
+        }
+
+        // For URL uploads, we need to pass the URL as a string to the 'file' parameter
+        // This is the correct way to handle URL uploads according to the Lemonfox API
         lemonfoxFormData.append("file", fileOrUrl);
+
+        // Note: We can't validate the file size for URL uploads before sending to the API
+        // The Lemonfox API will handle size validation on their end (1GB limit)
+        // We set maxBodyLength in the axios config to enforce this limit
+
         logWithContext("debug", "Processing URL input", {
           requestId,
           url: fileOrUrl,
+          isLikelyMediaUrl,
         });
       } catch (error) {
         logWithContext("warn", "Invalid URL provided", {
@@ -119,8 +148,12 @@ export async function POST(request: NextRequest) {
       }
 
       const buffer = await fileOrUrl.arrayBuffer();
-      const fileBlob = new Blob([buffer], { type: fileOrUrl.type });
-      lemonfoxFormData.append("file", fileBlob, fileOrUrl.name);
+      // Convert ArrayBuffer to Buffer for Node.js FormData
+      const nodeBuffer = Buffer.from(buffer);
+      lemonfoxFormData.append("file", nodeBuffer, {
+        filename: fileOrUrl.name,
+        contentType: fileOrUrl.type,
+      });
 
       logWithContext("debug", "Processing file input", {
         requestId,
@@ -229,6 +262,18 @@ export async function POST(request: NextRequest) {
           break;
         case 429:
           message = "Rate limit exceeded. Please try again later";
+          break;
+        case 400:
+          // Handle specific URL-related errors
+          if (
+            typeof fileOrUrl === "string" &&
+            error.response?.data?.error?.includes("URL")
+          ) {
+            message =
+              "Invalid or inaccessible URL. Please check the URL and try again.";
+          } else if (error.response?.data?.error?.includes("size")) {
+            message = FILE_SIZE_ERROR.OVER_URL_LIMIT;
+          }
           break;
       }
 
