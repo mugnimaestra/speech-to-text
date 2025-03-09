@@ -15,6 +15,7 @@ export default function SpeechToText({
 }: SpeechToTextProps) {
   const [selectedLanguage, setSelectedLanguage] = useState("indonesian");
   const [speakerConfig, setSpeakerConfig] = useState({ min: 1, max: 2 });
+  const [translateToEnglish, setTranslateToEnglish] = useState(false);
 
   const {
     input,
@@ -30,6 +31,7 @@ export default function SpeechToText({
     language: selectedLanguage,
     minSpeakers: speakerConfig.min,
     maxSpeakers: speakerConfig.max,
+    translate: translateToEnglish,
   });
 
   const handleSpeakerConfigChange = (min: number, max: number) => {
@@ -65,8 +67,35 @@ export default function SpeechToText({
     <div className="w-full max-w-2xl mx-auto p-6 space-y-6 bg-[#151A28] rounded-xl shadow-lg">
       <div className="space-y-6">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          <LanguageSelector onLanguageChange={setSelectedLanguage} />
+          <div className="flex flex-col">
+            <LanguageSelector onLanguageChange={setSelectedLanguage} />
+            {translateToEnglish && (
+              <p className="mt-1 text-xs text-gray-400 italic">
+                Language is used for initial detection, but output will be
+                translated to English
+              </p>
+            )}
+          </div>
           <SpeakerConfig onSpeakerConfigChange={handleSpeakerConfigChange} />
+        </div>
+
+        <div className="flex items-center p-3 bg-[#1E2538] rounded-lg border border-[#2C3A59]">
+          <input
+            type="checkbox"
+            id="translate-checkbox"
+            checked={translateToEnglish}
+            onChange={(e) => setTranslateToEnglish(e.target.checked)}
+            className="h-5 w-5 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+          />
+          <label
+            htmlFor="translate-checkbox"
+            className="ml-3 text-gray-200 font-medium"
+          >
+            Translate to English
+          </label>
+          <span className="ml-2 text-xs text-gray-400">
+            (Automatically translate transcription to English)
+          </span>
         </div>
 
         <URLInput

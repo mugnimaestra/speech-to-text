@@ -42,6 +42,8 @@ interface UseSpeechToTextCallbacks {
   minSpeakers?: number;
   /** Maximum number of speakers expected in the audio */
   maxSpeakers?: number;
+  /** Whether to translate the transcription to English */
+  translate?: boolean;
 }
 
 interface UseSpeechToTextReturn
@@ -116,6 +118,7 @@ export function useSpeechToText({
   language = "indonesian",
   minSpeakers = 1,
   maxSpeakers = 2,
+  translate = false,
 }: UseSpeechToTextCallbacks = {}): UseSpeechToTextReturn {
   const [state, setState] = useState<UseSpeechToTextState>({
     input: null,
@@ -252,6 +255,9 @@ export function useSpeechToText({
         formData.append("language", language);
         formData.append("min_speakers", minSpeakers.toString());
         formData.append("max_speakers", maxSpeakers.toString());
+        if (translate) {
+          formData.append("translate", "true");
+        }
 
         const result = (await transcribeAudio(formData, (status) => {
           setState((prev) => ({ ...prev, status }));
@@ -279,7 +285,14 @@ export function useSpeechToText({
         handleError((error as Error).message);
       }
     },
-    [onTranscriptionComplete, handleError, language, minSpeakers, maxSpeakers]
+    [
+      onTranscriptionComplete,
+      handleError,
+      language,
+      minSpeakers,
+      maxSpeakers,
+      translate,
+    ]
   );
 
   const handleUrl = useCallback(
@@ -311,6 +324,9 @@ export function useSpeechToText({
         formData.append("language", language);
         formData.append("min_speakers", minSpeakers.toString());
         formData.append("max_speakers", maxSpeakers.toString());
+        if (translate) {
+          formData.append("translate", "true");
+        }
 
         const result = (await transcribeAudio(formData, (status) => {
           setState((prev) => ({ ...prev, status }));
@@ -338,7 +354,14 @@ export function useSpeechToText({
         handleError((error as Error).message);
       }
     },
-    [onTranscriptionComplete, handleError, language, minSpeakers, maxSpeakers]
+    [
+      onTranscriptionComplete,
+      handleError,
+      language,
+      minSpeakers,
+      maxSpeakers,
+      translate,
+    ]
   );
 
   return {

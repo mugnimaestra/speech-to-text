@@ -180,6 +180,15 @@ export async function POST(request: NextRequest) {
       logWithContext("debug", "Added prompt to request", { requestId });
     }
 
+    // Check for translate parameter
+    const translate = formData.get("translate");
+    if (translate === "true") {
+      lemonfoxFormData.append("translate", "true");
+      logWithContext("debug", "Added translate parameter to request", {
+        requestId,
+      });
+    }
+
     // Validate API key exists
     const apiKey = process.env.LEMONFOX_API_KEY;
     if (!apiKey) {
